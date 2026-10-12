@@ -1,0 +1,10 @@
+allowBuilds:
+  electron: true
+  esbuild: true
+  electron-winstaller: false
+
+# Pin cached compatible transitive versions for reproducible builds.
+overrides:
+  electron-to-chromium: 1.5.445
+  '@electron/rebuild': 4.2.0
+  tinyrainbow: 3.1.0

@@ -1,6 +1,6 @@
 # 架构设计
 
-状态：设计基线，尚未实现。版本：0.1。
+状态：桌面雏形已实现，本文记录当前结构与扩展约束。版本：0.1。
 
 ## 1. 目标与边界
 
@@ -42,24 +42,21 @@ main 不直接驱动 React 组件，renderer 不决定可访问的系统资源�
 
 窗口配置使用 contextIsolation: true、sandbox: true、nodeIntegration: false。限制内容导航与新窗口打开；外部链接先校验协议与用途，再由系统浏览器打开。配置 CSP，开发与生产策略分开，生产不沿用开发服务器的宽松策略。
 
-## 4. 计划目录
+## 4. 当前目录
 
-以下目录为初始化后的目标结构，并不表示当前已有这些文件。
+核心代码结构如下。当前窗口生命周期集中在 main/index.ts；出现多窗口或更复杂业务后再拆分窗口与服务模块。
 
 ```text
 src/
 ├── main/
 │   ├── index.ts
-│   ├── windows/main-window.ts
-│   ├── ipc/settings.ts
-│   ├── services/settings-service.ts
+│   ├── ipc/                 # 设置接口与来源检查
 │   └── storage/settings-repository.ts
 ├── preload/
 │   └── index.ts
 ├── shared/
 │   ├── contracts/app-api.ts
 │   ├── schemas/settings.ts
-│   └── errors.ts
 └── renderer/src/
     ├── app/                 # 入口、路由、providers、错误边界
     ├── shell/               # AppShell、AppSidebar、PageHeader
@@ -110,9 +107,15 @@ AppShell 包含侧栏和主内容区，主内容区包含 PageHeader 与路由�
 ```ts
 interface AppApi {
   settings: {
-    get(): Promise<Result<AppSettings>>
-    update(patch: SettingsPatch): Promise<Result<AppSettings>>
+    get(): Promise<Result<SettingsSnapshot>>
+    update(patch: SettingsPatch): Promise<Result<SettingsSnapshot>>
   }
+}
+
+// Snapshot 仅包含界面需要的偏好与恢复提示，不暴露 windowBounds。
+interface SettingsSnapshot {
+  preferences: { theme: 'system' | 'light' | 'dark'; sidebarCollapsed: boolean; sidebarWidth: number }
+  warning?: string
 }
 
 type Result<T> =
@@ -120,7 +123,7 @@ type Result<T> =
   | { ok: false; error: { code: string; message: string } }
 ```
 
-此处是契约草案，具体类型在 shared 中定义。update 仅接受允许修改的字段，不允许任意键覆盖设置。main 校验调用来自受信任的主窗口主 frame，并按当前环境验证加载来源，再校验 payload。
+具体类型在 shared/contracts/app-api.ts 中定义；只读 platform 字段用于平台布局适配。update 仅接受允许修改的字段，不允许任意键覆盖设置。main 校验调用来自受信任的主窗口主 frame，并按当前环境验证加载来源，再校验 payload。
 
 业务失败转换为稳定的错误码和可展示信息，完整内部错误仅进入经过脱敏的日志。IPC 传输本身的异常仍可能使 Promise reject，界面适配层必须捕获并显示可恢复状态。
 
@@ -132,7 +135,7 @@ type Result<T> =
 
 初始字段：schemaVersion、theme（system/light/dark）、sidebarCollapsed、sidebarWidth、windowBounds。平台窗口细节由主进程管理，不允许页面任意修改原始窗口配置。
 
-保存遵循以下流程：校验 patch → 合并当前值 → 校验完整结果 → 串行写入同目录临时文件 → 替换正式文件 → 返回已保存结果。拖拽尺寸变化使用防抖并在操作结束时提交；退出时处理仍未完成的写入。
+保存遵循以下流程：校验 patch → 合并当前值 → 校验完整结果 → 串行写入同目录临时文件 → 替换正式文件 → 返回已保存结果。窗口移动与尺寸变化使用防抖，关闭或退出时保存最新位置并等待写入完成。当前侧栏宽度通过设置页的四档选项调整，拖拽调宽尚未实现。
 
 缺失文件使用默认值；损坏文件保留备份并回退默认值，同时给予非阻塞提示。版本变更使用显式迁移；遇到更高且不支持的版本，不静默覆盖原文件。窗口位置恢复前检查是否仍位于可用显示器范围，避免窗口出现在屏幕外。
 
@@ -140,11 +143,11 @@ type Result<T> =
 
 ## 9. 验证与构建
 
-初始化时建立 dev、typecheck、lint、test、build、package 脚本，使用 pnpm 并提交单一锁文件。当前仓库尚无这些脚本。
+已建立 dev、typecheck、lint、test、build、package 和 test:desktop 脚本，使用 pnpm 并提交单一锁文件。另有 start 运行生产构建，package:mac 生成 macOS ZIP。
 
 单元测试优先覆盖设置校验、迁移、损坏恢复和不合法 IPC 输入。实际 Electron 验证覆盖启动、导航、主题、保存后重启、窗口缩放、键盘焦点与打包后资源加载。
 
-至少在一个已确定的目标平台跑通安装包。目标系统、分发方式、签名和自动更新均未确定，不得将本地构建成功视为跨平台交付成功。
+当前优先验证本机 macOS Apple Silicon。具体结果见 verification.md；Windows/Linux、签名、公证和自动更新未验证，不得将本机成功视为跨平台交付成功。
 
 ## 10. 官方参考
 
