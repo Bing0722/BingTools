@@ -56,7 +56,7 @@ macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。�
 
 桌面测试使用独立临时目录，不修改正式设置。测试截图输出到已忽略的 `test-results/`。
 
-依赖版本与 `pnpm-lock.yaml` 已锁定。本次在网络包源不可达时使用本机缓存安装；`pnpm-workspace.yaml` 对三项间接依赖锁定了兼容版本。后续更新时应重新验证并评估是否移除这些锁定。shadcn 风格的基础组件采用 Radix + CVA 在本地维护，配置入口为 `components.json`。
+依赖版本与 `pnpm-lock.yaml` 已锁定。使用 npm 官方源及 `pnpm install` 默认在线模式；在线连接失败时先修复，不退回离线安装。之前为了离线缓存添加的间接依赖覆盖已移除。shadcn 风格的基础组件采用 Radix + CVA 在本地维护，配置入口为 `components.json`。
 
 ## 本地提交约定
 
