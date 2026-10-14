@@ -63,6 +63,7 @@ try {
   await page.waitForFunction(() => Math.abs(document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width - 240) < 1)
   await page.emulateMedia({ reducedMotion: 'reduce' })
   assert.equal(await page.locator('.app-shell').evaluate((element) => getComputedStyle(element).transitionDuration), '0s')
+  assert.equal(await page.locator('.page-scroll').evaluate((element) => getComputedStyle(element).animationName), 'none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
   await screenshot(page, 'shell-expanded')
   await page.getByRole('button', { name: '新增客户', exact: true }).first().click()
@@ -92,9 +93,17 @@ try {
   await page.keyboard.press('Escape')
   await dialog.waitFor({ state: 'hidden' })
   assert.equal(await page.getByLabel('监听 IP', { exact: true }).isDisabled(), true)
+  await page.evaluate(() => {
+    window.toggleFlashes = []
+    window.toggleObserver = new MutationObserver((records) => {
+      if (records.some((record) => record.attributeName === 'disabled' && record.target.matches('.editor-fields input,.editor-fields textarea'))) window.toggleFlashes.push('disabled')
+    })
+    window.toggleObserver.observe(document.querySelector('.editor-fields'), { attributes: true, subtree: true })
+  })
   await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'false')
   assert.equal((await fetch(url)).status, 404)
+  assert.deepEqual(await page.evaluate(() => { window.toggleObserver.disconnect(); return window.toggleFlashes }), [])
   await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
   await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'true')
   await page.getByLabel('响应内容', { exact: true }).fill('{"updated":true}')
@@ -111,7 +120,7 @@ try {
   assert.equal(await page.getByRole('button', { name: '美化 JSON', exact: true }).count(), 0)
   await page.getByLabel('响应格式', { exact: true }).selectOption('json')
   await page.getByRole('button', { name: '保存接口', exact: true }).click()
-  await page.getByRole('alert').filter({ hasText: 'JSON' }).waitFor()
+  await page.locator('.toast.error').filter({ hasText: 'JSON' }).waitFor()
   // 导航的取消与放弃均经过真实路由阻塞器。
   await page.getByRole('link', { name: '设置', exact: true }).click()
   dialog = page.getByRole('dialog')
@@ -151,8 +160,18 @@ try {
   await page.waitForFunction(() => window.innerWidth < 960)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
   assert.equal(await page.locator('.endpoint-list').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.endpoint-editor').getBoundingClientRect().top + 1), true)
+  const logHeight = await page.locator('.log-panel').evaluate((element) => element.getBoundingClientRect().height)
   await page.getByRole('button', { name: 'Collapse logs', exact: true }).click()
+  await page.waitForFunction((height) => {
+    const current = document.querySelector('.log-panel').getBoundingClientRect().height
+    return current > 44 && current < height
+  }, logHeight)
+  await page.waitForFunction(() => document.querySelector('.log-panel').getBoundingClientRect().height <= 44)
+  assert.equal(await page.locator('.log-entries').getAttribute('inert'), '')
+  await screenshot(page, 'logs-collapsed')
   await page.getByRole('button', { name: 'Expand logs', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.log-panel').getBoundingClientRect().height > 90)
+  assert.equal(await page.locator('.log-entries').getAttribute('inert'), null)
   await screenshot(page, 'simulator-narrow')
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(800, 560))
   await page.waitForFunction(() => window.innerWidth <= 800)
@@ -173,7 +192,8 @@ try {
   // 端口占用必须有页面错误和通知中心记录。
   await new Promise((resolve) => reserved.listen(port, '127.0.0.1', resolve))
   await page.getByRole('button', { name: 'Start server', exact: true }).click()
-  await page.getByRole('alert').filter({ hasText: 'port is in use' }).waitFor()
+  await page.locator('.toast.error').filter({ hasText: 'port is in use' }).waitFor()
+  assert.equal(await page.locator('.simulator-top [role="alert"]').count(), 0)
   await page.getByRole('button', { name: 'Notifications', exact: true }).click()
   await page.getByRole('dialog').getByText(/port is in use/).waitFor()
   await page.getByRole('button', { name: 'Clear notifications', exact: true }).click()

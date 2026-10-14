@@ -7,6 +7,7 @@
   --control-border: #85858f; --hover: #ececef; --selected: #e4e4e9;
   --accent: #2563eb; --accent-foreground: #fff; --danger: #b91c1c; --success: #15803d;
   --primary: #252528; --primary-foreground: #fff;
+  --motion-fast: 140ms; --motion-panel: 240ms; --motion-ease: cubic-bezier(.22, 1, .36, 1);
   --radius: 8px; --shadow: 0 12px 38px #00000014;
   --tone-blue-bg: #edf2fc; --tone-blue-fg: #49638c;
   --tone-amber-bg: #f7f1e7; --tone-amber-fg: #88704a;
@@ -275,3 +276,25 @@ textarea { resize:vertical; }
 .json-feedback { margin:0; font-size:11px; color:var(--muted-foreground); }
 .json-invalid { color:var(--danger); }
 .body-field textarea[aria-invalid="true"] { border-color:var(--danger); }
+
+/* 通用动效：仅在挂载/状态变化时运行，不给每条 HTTP 日志添加动画。 */
+@keyframes content-enter { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:translateY(0); } }
+@keyframes fade-in { from { opacity:0; } to { opacity:1; } }
+@keyframes fade-out { from { opacity:1; } to { opacity:0; } }
+@keyframes dialog-in { from { opacity:0; transform:translate(-50%,-48%) scale(.98); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
+@keyframes dialog-out { from { opacity:1; transform:translate(-50%,-50%) scale(1); } to { opacity:0; transform:translate(-50%,-48%) scale(.98); } }
+.page-scroll,.editor-fields { animation:content-enter var(--motion-panel) var(--motion-ease); }
+.dialog-overlay[data-state="open"] { animation:fade-in var(--motion-fast) ease-out; }
+.dialog-overlay[data-state="closed"] { animation:fade-out var(--motion-fast) ease-in; }
+.dialog-content[data-state="open"] { animation:dialog-in 200ms var(--motion-ease); }
+.dialog-content[data-state="closed"] { animation:dialog-out var(--motion-fast) ease-in; }
+.toast { animation:content-enter 200ms var(--motion-ease); }
+.button,.nav-item,.endpoint-item,.theme-choice,.switch { transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),box-shadow var(--motion-fast); }
+.switch>span { transition:transform 180ms var(--motion-ease); }
+.switch[aria-busy="true"] { cursor:progress; }
+.log-panel { overflow:hidden; transition:height var(--motion-panel) var(--motion-ease),min-height var(--motion-panel) var(--motion-ease); }
+.log-controls { display:flex; align-items:center; gap:8px; min-width:0; transition:opacity var(--motion-fast),visibility var(--motion-fast); }
+.log-entries { transition:opacity var(--motion-fast),visibility var(--motion-fast); }
+.log-panel.collapsed :is(.log-controls,.log-entries) { opacity:0; visibility:hidden; pointer-events:none; }
+.log-chevron { transition:transform var(--motion-panel) var(--motion-ease); }
+.log-panel.collapsed .log-chevron { transform:rotate(180deg); }

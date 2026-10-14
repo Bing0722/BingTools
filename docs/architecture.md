@@ -104,3 +104,10 @@ LogBuffer 最多 1000 条，预览分别最多 8 KiB、UTF-8 边界安全、敏�
 AppShell 使用两行 Grid：顶部 PageHeader 跨两列，下面为侧栏和内容。侧栏宽度使用 CSS Grid 过渡，文字保持挂载并淡出，不增加动画依赖。主进程配置 macOS 原生按钮位置和 Windows titleBarOverlay；nativeTheme 的应用级监听同步 Windows 按钮颜色，窗口销毁后不再操作窗口。Windows 默认自动隐藏原生菜单，保留 Alt 访问与快捷键；不新增窗口控制 IPC。
 
 JSON 编辑采用本地 ResponseBodyEditor 和纯函数校验/美化，无新增依赖。使用 JSON.parse 校验语法，但美化仅重排 token 间空白，保留大整数、重复键、数字写法与转义。输入和美化输出均限制 1 MiB；深层缩进最多 80 空格，避免空白膨胀。主进程 schema 继续独立校验，界面校验不能替代 IPC 边界。
+
+
+## 局部操作与动效生命周期
+
+仿真 store 的 pendingToggle 标记正在保存的接口，busy 继续串行保护命令；页面由 pendingToggle 区分整页操作和局部开关。接口开关完成时仅合并 enabled，保留等待期间的其他草稿输入。快照先到达时忽略该开关字段的短暂差异，避免“尚未保存”闪动。错误统一通知，配置警告仅在发生变化时通知。
+
+AppShell 的路由内容按 pathname 重挂载以触发 CSS 入场，标题栏和侧栏保持稳定；阻塞导航继续由 useBlocker 处理。Radix 利用 data-state 的 CSS 动画延迟卸载弹窗；日志面板不卸载列表，收起用 inert/aria-hidden 隔离键盘与辅助技术。减少动态效果时不依赖 animationend 才能完成业务操作。

@@ -49,7 +49,7 @@ export function AppShell() {
     <AppSidebar collapsed={collapsed} onNavigate={() => setOverlay(false)} />
     <section className="main-panel">
       {(error || warning) && <div className="notice" role={error ? 'alert' : 'status'}><span>{t(error || warning || '')}</span>{error && <Button variant="ghost" size="sm" onClick={() => void load()}>{t('retry')}</Button>}</div>}
-      <main id="main-content" ref={scroll} className={`page-scroll ${pathname === '/simulator' ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
+      <main key={pathname} id="main-content" ref={scroll} className={`page-scroll ${pathname === '/simulator' ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
     </section>
     <Dialog open={narrow && overlay} onOpenChange={setOverlay} title={t('navigation')} description={t('choosePage')}><div className="mobile-nav"><AppSidebar collapsed={false} onNavigate={() => setOverlay(false)} /></div></Dialog>
   </div>

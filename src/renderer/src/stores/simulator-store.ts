@@ -5,14 +5,18 @@ import { defaultSimulatorConfig } from '../../../shared/schemas/simulator'
 import { useNotifications } from './notification-store'
 const initial: SimulatorSnapshot = { revision: -1, config: defaultSimulatorConfig, runtime: { phase: 'stopped' }, logs: [] }
 interface State {
-  snapshot: SimulatorSnapshot; ready: boolean; busy: boolean; error?: string
+  snapshot: SimulatorSnapshot; ready: boolean; busy: boolean; pendingToggle?: string; error?: string
   apply: (snapshot: SimulatorSnapshot) => void
   receive: (event: SimulatorEvent) => void
-  run: (operation: () => Promise<Result<SimulatorSnapshot>>, success?: string) => Promise<boolean>
+  run: (operation: () => Promise<Result<SimulatorSnapshot>>, success?: string, pendingToggle?: string) => Promise<boolean>
 }
 export const useSimulator = create<State>((set, get) => ({
   snapshot: initial, ready: false, busy: false,
-  apply: (snapshot) => set((state) => snapshot.revision >= state.snapshot.revision ? { snapshot, ready: true } : { ready: true }),
+  apply: (snapshot) => {
+    if (snapshot.revision < get().snapshot.revision) return
+    if (snapshot.warning && snapshot.warning !== get().snapshot.warning) useNotifications.getState().push(snapshot.warning, 'error')
+    set({ snapshot, ready: true })
+  },
   receive: (event) => {
     if (event.type === 'snapshot') get().apply(event.snapshot)
     else {
@@ -21,9 +25,9 @@ export const useSimulator = create<State>((set, get) => ({
       if (!event.entry.method && event.entry.code !== 'BAD_REQUEST') useNotifications.getState().push(event.entry.code, event.entry.level === 'error' ? 'error' : 'info', true)
     }
   },
-  run: async (operation, success) => {
+  run: async (operation, success, pendingToggle) => {
     if (get().busy) return false
-    set({ busy: true, error: undefined })
+    set({ busy: true, pendingToggle, error: undefined })
     try {
       const result = await operation()
       if (!result.ok) throw new Error(result.error.code)
@@ -33,7 +37,7 @@ export const useSimulator = create<State>((set, get) => ({
     } catch (error) {
       const code = error instanceof Error && /^[A-Z_]+$/.test(error.message) ? error.message : 'CONNECTION_FAILED'
       set({ error: code }); useNotifications.getState().push(code, 'error'); return false
-    } finally { set({ busy: false }) }
+    } finally { set({ busy: false, pendingToggle: undefined }) }
   },
 }))
 /** 先订阅并缓冲，快照完成后按顺序补齐，避免首次加载丢掉刚到达的请求。 */
