@@ -31,6 +31,14 @@ describe('settings boundary', () => {
   })
 })
 describe('settings persistence', () => {
+  it('migrates v1 without losing theme, layout or window bounds', async () => {
+    const { repository, path } = await fixture()
+    const old = { schemaVersion: 1, theme: 'dark', sidebarWidth: 280, sidebarCollapsed: true, windowBounds: { x: 10, y: 20, width: 1000, height: 700 } }
+    await writeFile(path, JSON.stringify(old))
+    expect(await repository.load()).toEqual({ ...old, schemaVersion: 2, language: 'system' })
+    await repository.update({ language: 'en' })
+    expect(await new SettingsRepository(path).load()).toMatchObject({ language: 'en', theme: 'dark', windowBounds: old.windowBounds })
+  })
   it('restores saved settings after restart', async () => {
     const { repository, path } = await fixture()
     expect((await repository.load()).theme).toBe('system')
@@ -48,7 +56,7 @@ describe('settings persistence', () => {
     const { repository, directory, path } = await fixture()
     await writeFile(path, '{broken')
     expect((await repository.load()).theme).toBe('system')
-    expect(repository.warning).toContain('备份')
+    expect(repository.warning).toBe('RECOVERED')
     const backup = (await readdir(directory)).find((name) => name.includes('.corrupt-'))!
     expect(await readFile(join(directory, backup), 'utf8')).toBe('{broken')
     await repository.update({ theme: 'light' })

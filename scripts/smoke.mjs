@@ -1,14 +1,22 @@
 import { _electron as electron } from 'playwright'
-import { mkdtemp, mkdir, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'node:fs/promises'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import assert from 'node:assert/strict'
 
+// 全流程使用独立配置目录和临时监听端口，不接触正式客户数据。
 const directory = await mkdtemp(join(tmpdir(), 'bingtools-desktop-'))
 const errors = []
 let application
 const executablePath = process.env.BINGTOOLS_EXECUTABLE
-async function launch() {
+const reserved = createServer()
+await new Promise((resolve, reject) => { reserved.once('error', reject); reserved.listen(0, '127.0.0.1', resolve) })
+const port = reserved.address().port
+await new Promise((resolve) => reserved.close(resolve))
+const url = `http://127.0.0.1:${port}/api/example`
+await writeFile(join(directory, 'settings.json'), JSON.stringify({ schemaVersion: 2, language: 'zh-CN', theme: 'light', sidebarWidth: 240, sidebarCollapsed: false }))
+async function launch(language = 'zh-CN') {
   const environment = { ...process.env, BINGTOOLS_TEST_DATA: directory }
   delete environment.ELECTRON_RUN_AS_NODE
   application = await electron.launch({
@@ -18,83 +26,146 @@ async function launch() {
   const page = await application.firstWindow()
   page.setDefaultTimeout(10000)
   page.on('pageerror', (error) => errors.push(error.message))
-  await page.getByRole('heading', { name: /留一点空间/ }).waitFor()
-  assert.equal(await page.getByRole('link', { name: '工作台', exact: true }).evaluate((element) => getComputedStyle(element).display), 'flex')
-  console.log('Window ready')
+  await page.getByRole('heading', { name: language === 'en' ? 'Server simulator' : '服务器仿真', exact: true }).waitFor()
   return page
 }
 async function waitTheme(page, theme) {
   await page.waitForFunction((dark) => document.documentElement.classList.contains('dark') === dark, theme === 'dark')
 }
+async function screenshot(page, name) {
+  const dismiss = page.getByRole('button', { name: /^(Dismiss notification|关闭通知)$/ })
+  while (await dismiss.count()) await dismiss.first().click()
+  await page.screenshot({ path: `test-results/${name}.png` })
+}
+async function goSettings(page) {
+  if (await page.evaluate(() => window.innerWidth < 960)) await page.getByRole('button', { name: /切换侧栏|Toggle sidebar/ }).click()
+  await page.getByRole('link', { name: /^(设置|Settings)$/ }).click()
+}
 try {
   await mkdir('test-results', { recursive: true })
   let page = await launch()
-  await page.screenshot({ path: 'test-results/workspace.png' })
+  await page.getByRole('button', { name: '新增客户', exact: true }).first().click()
+  let dialog = page.getByRole('dialog')
+  await dialog.getByLabel('客户名称', { exact: true }).fill('集成验证客户')
+  await dialog.getByLabel('端口', { exact: true }).fill(String(port))
+  await dialog.getByRole('button', { name: '保存', exact: true }).click()
+  await dialog.waitFor({ state: 'hidden' })
+  await page.getByRole('button', { name: '新增接口', exact: true }).first().click()
+  await page.getByLabel('接口名称', { exact: true }).fill('健康检查')
+  await page.getByLabel('响应内容', { exact: true }).fill('{"ok":true}')
+  await page.getByRole('switch', { name: '启用', exact: true }).click()
+  await page.getByRole('button', { name: '保存接口', exact: true }).click()
+  await page.getByRole('button', { name: '启动服务', exact: true }).click()
+  await page.locator('.runtime-badge').filter({ hasText: '运行中' }).waitFor()
+  assert.deepEqual(await (await fetch(url + '?query=ignored', { headers: { Authorization: 'secret', Cookie: 'token=secret' } })).json(), { ok: true })
+  await page.locator('.log-entry').filter({ hasText: '/api/example' }).first().click()
+  dialog = page.getByRole('dialog')
+  assert.match(await dialog.innerText(), /REDACTED/)
+  assert.doesNotMatch(await dialog.innerText(), /secret/)
+  await page.keyboard.press('Escape')
+  await dialog.waitFor({ state: 'hidden' })
+  assert.equal(await page.getByLabel('监听 IP', { exact: true }).isDisabled(), true)
+  await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'false')
+  assert.equal((await fetch(url)).status, 404)
+  await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
+  await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'true')
+  await page.getByLabel('响应内容', { exact: true }).fill('{"updated":true}')
+  await page.getByRole('button', { name: '保存接口', exact: true }).click()
+  await page.getByRole('button', { name: '保存接口', exact: true }).waitFor({ state: 'visible' })
+  await page.waitForFunction(() => document.querySelector('.editor-footer .button')?.disabled)
+  assert.deepEqual(await (await fetch(url)).json(), { updated: true })
+  await page.getByLabel('响应内容', { exact: true }).fill('{broken')
+  await page.getByRole('button', { name: '保存接口', exact: true }).click()
+  await page.getByRole('alert').filter({ hasText: 'JSON' }).waitFor()
+  // 导航的取消与放弃均经过真实路由阻塞器。
   await page.getByRole('link', { name: '设置', exact: true }).click()
+  dialog = page.getByRole('dialog')
+  await dialog.getByRole('button', { name: '取消', exact: true }).click()
+  assert.equal(await page.getByLabel('响应内容', { exact: true }).inputValue(), '{broken')
+  await page.getByRole('link', { name: '设置', exact: true }).click()
+  await page.getByRole('dialog').getByRole('button', { name: '放弃修改', exact: true }).click()
   await page.getByRole('button', { name: '深色', exact: true }).click()
   await waitTheme(page, 'dark')
-  await page.getByLabel('侧栏宽度').selectOption('280')
-  await page.waitForFunction(() => document.querySelector('.app-shell')?.getAttribute('style')?.includes('280'))
-  await page.screenshot({ path: 'test-results/settings-dark.png' })
-  const saved = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'))
-  assert.equal(saved.theme, 'dark')
-  assert.equal(saved.sidebarWidth, 280)
-  const rejected = await page.evaluate(() => window.app.settings.update({ theme: 'invalid' }))
-  assert.equal(rejected.ok, false)
-  await page.getByRole('button', { name: '恢复默认', exact: true }).click()
-  await page.getByRole('dialog').waitFor()
+  await page.getByLabel('语言', { exact: true }).selectOption('en')
+  await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
+  assert.equal(await application.evaluate(({ Menu }) => Menu.getApplicationMenu().items.some((item) => item.label === 'Edit')), true)
+  await page.getByRole('link', { name: 'Server simulator', exact: true }).click()
+  assert.equal(await page.getByLabel('Response body', { exact: true }).inputValue(), '{"updated":true}')
+  await page.getByRole('heading', { name: 'Server simulator', exact: true }).waitFor()
+  await screenshot(page, 'simulator-dark')
+  await page.getByRole('button', { name: 'Notifications', exact: true }).click()
+  await page.getByRole('dialog').getByText('Server started', { exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Mark all as read', exact: true }).click()
   await page.keyboard.press('Escape')
-  await page.getByRole('dialog').waitFor({ state: 'hidden' })
-  await page.getByRole('link', { name: '示例空间', exact: true }).click()
-  await page.getByLabel('预览状态').selectOption('error')
-  await page.getByRole('button', { name: '重试', exact: true }).click()
-  await page.getByLabel('搜索示例').fill('灵感')
-  await page.getByRole('link', { name: /灵感与随手记录.*一个用于/ }).click()
-  await page.getByRole('heading', { name: '灵感与随手记录', exact: true }).waitFor()
-  await page.getByRole('button', { name: '项目操作' }).click()
-  await page.getByRole('menuitem', { name: '关于这个示例' }).click()
-  await page.getByRole('dialog').waitFor()
-  await page.keyboard.press('Escape')
-  await page.getByRole('link', { name: '返回示例空间' }).click()
-  assert.equal(await page.getByLabel('搜索示例').inputValue(), '灵感')
-  await page.getByLabel('搜索示例').fill('')
-  await page.getByLabel('预览状态').selectOption('empty')
-  await page.getByRole('heading', { name: '这里还没有内容' }).waitFor()
-  await page.getByRole('button', { name: '显示所有示例' }).click()
+  await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Notifications')
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(850, 620))
   await page.waitForFunction(() => window.innerWidth < 960)
-  await page.getByRole('button', { name: '切换侧栏' }).click()
-  await page.getByRole('dialog').waitFor()
-  await page.keyboard.press('Escape')
-  await page.getByRole('dialog').waitFor({ state: 'hidden' })
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
-  await page.screenshot({ path: 'test-results/narrow-dark.png' })
-  await application.close()
-  application = undefined
-  page = await launch()
-  await waitTheme(page, 'dark')
-  await page.getByRole('link', { name: '设置', exact: true }).click()
-  assert.equal(await page.getByLabel('侧栏宽度').inputValue(), '280')
-  await page.getByRole('button', { name: '浅色', exact: true }).click()
+  assert.equal(await page.locator('.endpoint-list').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.endpoint-editor').getBoundingClientRect().top + 1), true)
+  await page.getByRole('button', { name: 'Collapse logs', exact: true }).click()
+  await page.getByRole('button', { name: 'Expand logs', exact: true }).click()
+  await screenshot(page, 'simulator-narrow')
+  await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(800, 560))
+  await page.waitForFunction(() => window.innerWidth <= 800)
+  assert.equal(await page.locator('.log-panel').evaluate((element) => element.getBoundingClientRect().bottom <= window.innerHeight + 1), true)
+  assert.equal(await page.locator('.editor-footer').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.log-panel').getBoundingClientRect().top + 1), true)
+  await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(850, 620))
+  await goSettings(page)
+  await page.getByRole('button', { name: 'Light', exact: true }).click()
   await waitTheme(page, 'light')
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1200, 800))
-  await page.getByRole('button', { name: '切换侧栏' }).click()
-  await page.waitForFunction(() => document.querySelector('.app-shell')?.getAttribute('style')?.includes('56'))
-  await page.getByRole('button', { name: '切换侧栏' }).click()
-  await page.waitForFunction(() => document.querySelector('.app-shell')?.getAttribute('style')?.includes('280'))
-  await page.getByRole('link', { name: '工作台', exact: true }).click()
-  await page.screenshot({ path: 'test-results/workspace-light.png' })
+  await page.waitForFunction(() => window.innerWidth >= 960)
+  await page.getByRole('link', { name: 'Server simulator', exact: true }).click()
+  await page.getByRole('heading', { name: 'Server simulator', exact: true }).waitFor()
+  await screenshot(page, 'simulator-light')
+  await page.getByRole('button', { name: 'Stop server', exact: true }).click()
+  await page.locator('.runtime-badge').filter({ hasText: 'Stopped' }).waitFor()
+  await assert.rejects(fetch(url))
+  // 端口占用必须有页面错误和通知中心记录。
+  await new Promise((resolve) => reserved.listen(port, '127.0.0.1', resolve))
+  await page.getByRole('button', { name: 'Start server', exact: true }).click()
+  await page.getByRole('alert').filter({ hasText: 'port is in use' }).waitFor()
+  await page.getByRole('button', { name: 'Notifications', exact: true }).click()
+  await page.getByRole('dialog').getByText(/port is in use/).waitFor()
+  await page.getByRole('button', { name: 'Clear notifications', exact: true }).click()
+  await page.keyboard.press('Escape')
+  await new Promise((resolve) => reserved.close(resolve))
+  await page.getByRole('button', { name: 'Start server', exact: true }).click()
+  await page.locator('.runtime-badge').filter({ hasText: 'Running' }).waitFor()
+  const rejected = await page.evaluate(() => window.app.settings.update({ theme: 'invalid' }))
+  assert.equal(rejected.ok, false)
+  // 关闭窗口（macOS 应用仍在）和重新激活，都不能留下或自动启动监听。
+  await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].close())
+  await page.waitForEvent('close')
+  await assert.rejects(fetch(url))
+  if (process.platform === 'darwin') {
+    const nextWindow = application.waitForEvent('window')
+    await application.evaluate(({ app }) => app.emit('activate'))
+    page = await nextWindow
+    await page.locator('.runtime-badge').filter({ hasText: 'Stopped' }).waitFor()
+    await assert.rejects(fetch(url))
+  }
+  await application.close(); application = undefined
+  page = await launch('en')
+  await waitTheme(page, 'light')
+  await page.locator('.runtime-badge').filter({ hasText: 'Stopped' }).waitFor()
+  assert.equal(await page.getByLabel('Customer', { exact: true }).textContent(), '—集成验证客户')
+  assert.equal(await page.getByLabel('Response body', { exact: true }).inputValue(), '{"updated":true}')
+  const saved = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'))
+  assert.equal(saved.language, 'en')
   assert.deepEqual(errors, [])
-  console.log('PASS: desktop navigation, real settings IPC, restart persistence, themes, dialogs, search, states, narrow layout and collapse; no renderer errors.')
+  console.log('PASS: HTTP workflow, hot updates, logs/redaction, unsaved edits, notifications, language persistence, themes, narrow layout, window-close/reopen and restart; no renderer errors.')
 } catch (error) {
   const page = application?.windows()[0]
   if (page) {
     await page.screenshot({ path: 'test-results/failure.png' }).catch(() => {})
-    console.error((await page.locator('body').innerText().catch(() => '')).slice(0, 2000))
+    console.error((await page.locator('body').innerText().catch(() => '')).slice(0, 3500))
   }
   console.error(errors)
   throw error
 } finally {
+  if (reserved.listening) await new Promise((resolve) => reserved.close(resolve))
   if (application) await application.close()
   await rm(directory, { recursive: true, force: true })
 }

@@ -1,159 +1,94 @@
 # 架构设计
 
-状态：桌面雏形已实现，本文记录当前结构与扩展约束。版本：0.1。
+版本：0.2；当前实现为单窗口 HTTP Mock 工作台。
 
-## 1. 目标与边界
+## 技术与进程边界
 
-建立单窗口桌面工作台：左侧导航固定存在，右侧切换页面，支持统一主题、设置保存与布局恢复。让新增页面遵循一致结构，同时保持系统权限集中、界面与数据访问解耦。
-
-第一版不实现账号、联网业务、插件加载、多窗口同步或 AI 模型接入。将来出现明确需求后再补充对应设计。
-
-## 2. 技术选型
-
-| 选型 | 职责与约束 |
+| 技术 | 职责 |
 | --- | --- |
-| Electron | 桌面窗口与系统接口，采用安全隔离配置 |
-| React + TypeScript | 组件、页面与类型契约，启用严格类型检查 |
-| electron-vite | main、preload、renderer 的开发及构建 |
-| Tailwind CSS | 布局和样式，通过语义变量统一主题 |
-| shadcn/ui | 将基础组件代码纳入项目维护，初始化时统一选择一种底层组件方案 |
-| Lucide React | 统一线性图标，按需导入 |
-| React Router | 页面导航，使用基础客户端路由即可 |
-| Zustand | 少量共享 UI 状态；局部状态仍使用 React |
-| Zod | IPC 参数、设置文件等边界的运行时校验 |
-| electron-builder | 安装包生成；签名与发布在目标平台明确后配置 |
-| Vitest | 纯逻辑与边界校验测试；版本在初始化时确定 |
-
-shadcn/ui 的 Sidebar、Dialog、DropdownMenu、Tooltip 等按实际需要引入。可调分栏仅在实施对应需求时加入 Resizable，普通布局使用 CSS。第一版不需要 SSR 框架或独立 HTTP 后端。
-
-## 3. 进程与调用关系
+| Electron / electron-vite / electron-builder | 安全隔离窗口、三层构建、本机打包 |
+| React / TypeScript / React Router | 页面和类型；Hash 数据路由及未保存导航阻塞 |
+| Tailwind / 本地 shadcn 风格 Radix 组件 / Lucide | 语义主题、按钮、弹窗、Tooltip、线性图标 |
+| Zustand | 设置展示副本、仿真快照、通知和共享布局状态 |
+| Zod | IPC 输入、JSON 文件、编辑草稿校验 |
+| Node 内置 HTTP | 主进程服务，无 Web 框架或独立后台进程 |
+| i18next / react-i18next | 界面即时翻译和语言资源订阅 |
+| Vitest / Playwright Electron | 真实 HTTP 及持久化测试、真实桌面流程 |
 
 ```text
-renderer：页面 / 组件 / 路由 / UI 状态
-    │ window.app.settings.get() 等明确接口
-    ▼
-preload：contextBridge / 参数转发 / 事件清理
-    │ 允许的 IPC channel
-    ▼
-main：来源校验 → 参数校验 → 服务 → 持久化或系统能力
+外部客户端 ── HTTP ──> main/HttpSimulator
+                         ↑ 成功保存后替换配置
+renderer ── window.app ──> preload ── 固定 IPC ──> 来源/参数校验
+   ↑                                             ↓
+   └──── 状态快照 / 日志事件 ───────── SimulatorController
+                                                 ↓ 串行原子保存
+                                  userData/settings.json + simulator.json
 ```
 
-main 不直接驱动 React 组件，renderer 不决定可访问的系统资源范围。敏感操作的最终授权与校验在主进程完成。
+renderer 不访问 Node、文件系统或 Electron 特权接口。窗口保持 `contextIsolation: true`、`sandbox: true`、`nodeIntegration: false`，拒绝新窗口、内容导航与权限请求；生产 CSP 禁止 renderer 发起网络连接。HTTP 监听只发生在主进程。
 
-窗口配置使用 contextIsolation: true、sandbox: true、nodeIntegration: false。限制内容导航与新窗口打开；外部链接先校验协议与用途，再由系统浏览器打开。配置 CSP，开发与生产策略分开，生产不沿用开发服务器的宽松策略。
-
-## 4. 当前目录
-
-核心代码结构如下。当前窗口生命周期集中在 main/index.ts；出现多窗口或更复杂业务后再拆分窗口与服务模块。
+## 目录与职责
 
 ```text
-src/
-├── main/
-│   ├── index.ts
-│   ├── ipc/                 # 设置接口与来源检查
-│   └── storage/settings-repository.ts
-├── preload/
-│   └── index.ts
-├── shared/
-│   ├── contracts/app-api.ts
-│   ├── schemas/settings.ts
-└── renderer/src/
-    ├── app/                 # 入口、路由、providers、错误边界
-    ├── shell/               # AppShell、AppSidebar、PageHeader
-    ├── components/ui/       # 通用基础组件
-    ├── features/            # workspace、examples、settings
-    ├── stores/              # 跨组件 UI 状态
-    ├── lib/                 # 界面侧工具与 API 适配
-    └── styles/              # 全局样式与设计变量
-tests/
+src/main/
+  index.ts                         窗口、应用退出与服务释放
+  menu.ts                          根据语言生成自定义菜单
+  ipc/{guard,settings,simulator}.ts 固定 channel、主窗口/frame/URL 来源检查
+  services/http-simulator.ts        HTTP 匹配、大小限制、连接生命周期
+  services/simulator-controller.ts  配置与启停串行队列、状态事件
+  services/log-buffer.ts            会话日志、预览限长、请求头脱敏
+  storage/json-repository.ts        通用版本检查、备份、串行原子写入
+  storage/*-repository.ts           设置和仿真配置的校验适配
+src/preload/index.ts                按用途暴露有限 API，包装订阅清理
+src/shared/
+  schemas/{settings,simulator}.ts   跨进程 Zod 规则和业务类型
+  contracts/{app-api,simulator}.ts  Result、快照、日志与状态契约
+src/renderer/src/
+  app/                             providers、Hash 数据路由、错误边界
+  shell/                           AppShell、导航、标题栏
+  components/ui/                   通用基础组件
+  features/{simulator,settings,notifications}/
+  stores/                          共享展示状态和事件同步
+  i18n/                            zh-CN / en 资源与初始化
+  styles/globals.css               语义变量与布局
 ```
 
-组件仅在实际存在复用需求时抽取。不要把所有逻辑集中到 App.tsx，也不要预先建立与现有需求无关的抽象层。
+## API 和状态
 
-## 5. 布局与路由
+`window.app.settings` 提供 `get/update`；`window.app.simulator` 提供快照、客户保存／删除／选择、接口保存／删除／开关、启动／停止、日志清空、事件订阅。具体参数见 `shared/contracts/app-api.ts`。不暴露任意 channel、URL 请求、文件路径或命令接口。
 
-AppShell 包含侧栏和主内容区，主内容区包含 PageHeader 与路由出口。框架在路由切换时保持挂载。页面自行决定正文布局，但遵循统一滚动、边距与状态规范。
+主进程检查调用来自预期主窗口、主 frame 和加载文档；参数再经严格 Zod 校验，未知字段被拒绝。返回稳定代码的 `Result<T>`；页面翻译代码，IPC 异常由 store 捕获。preload 每个订阅返回取消函数，provider 卸载时调用。
 
-首版路由建议：
+主进程控制器的命令队列串行处理启停及配置操作。状态分为 stopped、starting、running、stopping、failed；控制器退出时立刻拒绝新命令，等队列结束后停服。窗口关闭和应用退出复用同一释放 Promise。
 
-| 路由 | 页面 |
-| --- | --- |
-| /workspace | 默认工作台，展示引导与示例入口 |
-| /examples/list | 列表布局示例，使用明确标注的演示数据 |
-| /examples/detail/:id | 详情布局示例 |
-| /settings | 外观和布局设置 |
-| 其他路径 | 应用内未找到页面，提供返回入口 |
+快照带递增 revision，日志为增量事件。renderer 先订阅、缓冲，再获取快照，按 revision 忽略过期数据，避免初始加载漏请求。业务数据权威副本在 main；renderer store 仅持展示快照。输入草稿、筛选和滚动暂停留在组件，当前页面由路由管理。客户选择随业务配置持久化，不另建路由选中状态。
 
-默认采用 HashRouter，使通过本地文件加载的安装包不依赖服务器路由回退。开发和生产保持同一种路由方式。如后续采用自定义协议并改用其他路由方案，应补充迁移决策。
+## HTTP 语义与资源限制
 
-导航项以配置描述 id、label、icon、path；活动状态交给路由匹配，详情路由匹配所属分组。示例项以后可替换为业务功能。
+每次请求开始获取一份客户配置快照。通过 URL pathname 和 HTTP method 查找启用接口，查询参数不匹配；未匹配返回 404。路径必须已规范化，以 `/` 开头、不含空格、查询或片段；非 ASCII 路径需 URL 编码。
 
-## 6. 状态划分
+响应固定 JSON 或文本，Content-Type 自动设置。HEAD、204、304 去掉正文。请求超 1 MiB 返回 413 并关闭连接，响应通过 schema 限制 1 MiB。请求头上限 16 KiB，接收请求超时 15 秒；预览只缓存约 8 KiB。停止先关闭监听和空闲连接，3 秒后强制断开残余 HTTP 连接。升级协议不受支持，连接直接结束。
 
-| 状态 | 所属层 |
-| --- | --- |
-| 当前页面、详情 ID | 路由 |
-| 输入框、临时筛选、菜单是否打开 | 组件或页面局部状态 |
-| 用户主动折叠侧栏、共享面板状态 | layout store |
-| 主题偏好、侧栏宽度 | 主进程设置，界面持有同步后的展示状态 |
-| 项目、历史记录等业务实体 | 将来由业务服务管理，不预先塞进 layout store |
+运行时只能编辑当前服务的接口；客户切换、监听地址变更和删除客户必须先停止。保存先落盘，再更新服务配置；磁盘失败不会改变正在生效的响应。运行状态不持久化，重新打开只能手动启动。
 
-布局状态区分“用户偏好”与“窗口变窄时的临时折叠”。临时折叠不覆盖用户保存的偏好，窗口恢复宽度后恢复原布局。
+## 持久化
 
-## 7. IPC 契约
+`settings.json` schemaVersion 2 保存 theme、language、sidebarCollapsed、sidebarWidth、windowBounds。v1 显式迁移，补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
-首版只暴露需要的接口：
+`simulator.json` schemaVersion 1 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
-```ts
-interface AppApi {
-  settings: {
-    get(): Promise<Result<SettingsSnapshot>>
-    update(patch: SettingsPatch): Promise<Result<SettingsSnapshot>>
-  }
-}
+日志与通知从不持久化。完整设置和客户数据会留在本机 userData，不进入 Git。
 
-// Snapshot 仅包含界面需要的偏好与恢复提示，不暴露 windowBounds。
-interface SettingsSnapshot {
-  preferences: { theme: 'system' | 'light' | 'dark'; sidebarCollapsed: boolean; sidebarWidth: number }
-  warning?: string
-}
+## 语言、日志与通知
 
-type Result<T> =
-  | { ok: true; data: T }
-  | { ok: false; error: { code: string; message: string } }
-```
+i18next 内嵌简中／英文资源，系统 locale 来自主进程；中文映射 zh-CN，其余 en。偏好保存后 renderer 即时切换，main 重建自定义菜单。原生系统菜单项目仍由操作系统决定语言。
 
-具体类型在 shared/contracts/app-api.ts 中定义；只读 platform 字段用于平台布局适配。update 仅接受允许修改的字段，不允许任意键覆盖设置。main 校验调用来自受信任的主窗口主 frame，并按当前环境验证加载来源，再校验 payload。
+事件和错误使用稳定代码，用户数据以单独字段传递；通知保存 key 而非翻译字符串，因此旧通知随语言切换。日志时间由 `Intl.DateTimeFormat` 格式化。
 
-业务失败转换为稳定的错误码和可展示信息，完整内部错误仅进入经过脱敏的日志。IPC 传输本身的异常仍可能使 Promise reject，界面适配层必须捕获并显示可恢复状态。
+LogBuffer 最多 1000 条，预览分别最多 8 KiB、UTF-8 边界安全、敏感头部脱敏。通知中心最多 100 条重要事件；同代码 5 秒内合并，轻提示最多同时 3 条，约 5 秒消失。普通 HTTP 记录不触发通知。
 
-以后增加事件时，preload 的订阅接口返回清理函数，不把原始 Electron event 对象传给页面。
+## 构建与验证
 
-## 8. 设置与持久化
+使用单一 pnpm 锁文件，在线安装，连接失败先排障。`build` 包含类型检查；`package` 复用已安装的当前平台 Electron 运行时。本机 macOS ARM64 验证，签名、公证、跨平台发布另行处理。测试运行需要允许本机回环监听，桌面测试使用独立临时目录。
 
-第一版只保存少量设置，使用主进程管理的 JSON 文件，位置为 app.getPath('userData') 下的应用设置文件。暂不引入数据库。
-
-初始字段：schemaVersion、theme（system/light/dark）、sidebarCollapsed、sidebarWidth、windowBounds。平台窗口细节由主进程管理，不允许页面任意修改原始窗口配置。
-
-保存遵循以下流程：校验 patch → 合并当前值 → 校验完整结果 → 串行写入同目录临时文件 → 替换正式文件 → 返回已保存结果。窗口移动与尺寸变化使用防抖，关闭或退出时保存最新位置并等待写入完成。当前侧栏宽度通过设置页的四档选项调整，拖拽调宽尚未实现。
-
-缺失文件使用默认值；损坏文件保留备份并回退默认值，同时给予非阻塞提示。版本变更使用显式迁移；遇到更高且不支持的版本，不静默覆盖原文件。窗口位置恢复前检查是否仍位于可用显示器范围，避免窗口出现在屏幕外。
-
-主题启动时先解析已保存偏好与系统主题，尽早设置页面主题，降低首屏闪烁。设置保存失败时告知用户，并恢复已保存状态或提供明确重试。
-
-## 9. 验证与构建
-
-已建立 dev、typecheck、lint、test、build、package 和 test:desktop 脚本，使用 pnpm 并提交单一锁文件。另有 start 运行生产构建，package:mac 生成 macOS ZIP。
-
-单元测试优先覆盖设置校验、迁移、损坏恢复和不合法 IPC 输入。实际 Electron 验证覆盖启动、导航、主题、保存后重启、窗口缩放、键盘焦点与打包后资源加载。
-
-当前优先验证本机 macOS Apple Silicon。具体结果见 verification.md；Windows/Linux、签名、公证和自动更新未验证，不得将本机成功视为跨平台交付成功。
-
-## 10. 官方参考
-
-- [Electron 进程模型](https://www.electronjs.org/docs/latest/tutorial/process-model)
-- [Electron 安全建议](https://www.electronjs.org/docs/latest/tutorial/security/)
-- [electron-vite](https://electron-vite.org/guide/)
-- [shadcn/ui](https://ui.shadcn.com/docs)
-- [React Router](https://reactrouter.com/start/modes)
-- [electron-builder](https://www.electron.build/)
+官方参考：[Node HTTP](https://nodejs.org/api/http.html)、[Electron 安全](https://www.electronjs.org/docs/latest/tutorial/security/)、[i18next API](https://www.i18next.com/overview/api)、[React 翻译集成](https://react.i18next.com/latest/usetranslation-hook)。

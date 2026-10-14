@@ -1,17 +1,28 @@
-import { app, BrowserWindow, Menu, nativeTheme, screen, session } from 'electron'
+import { app, BrowserWindow, nativeTheme, screen, session } from 'electron'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { SettingsRepository } from './storage/settings-repository'
 import { registerSettings } from './ipc/settings'
+import { SimulatorRepository } from './storage/simulator-repository'
+import { SimulatorController } from './services/simulator-controller'
+import { registerSimulator } from './ipc/simulator'
+import { updateMenu } from './menu'
 
 app.setName('BingTools')
-// A separate data directory makes automated desktop checks non-destructive.
+// 测试使用独立数据目录，不读取或改写用户正式设置。
 if (!app.isPackaged && process.env.BINGTOOLS_TEST_DATA) app.setPath('userData', process.env.BINGTOOLS_TEST_DATA)
 let window: BrowserWindow | null = null
 let quitting = false
 let closing = false
 let boundsTimer: ReturnType<typeof setTimeout> | undefined
 const repository = new SettingsRepository(join(app.getPath('userData'), 'settings.json'))
+const simulatorRepository = new SimulatorRepository(join(app.getPath('userData'), 'simulator.json'))
+const simulator = new SimulatorController(simulatorRepository)
+let shutdownPromise: Promise<void> | undefined
+function shutdown(): Promise<void> {
+  // 窗口关闭与应用退出可能重入，复用同一个释放过程。
+  return shutdownPromise ??= Promise.all([repository.flush(), simulator.shutdown()]).then(() => undefined)
+}
 const devUrl = !app.isPackaged ? process.env.ELECTRON_RENDERER_URL : undefined
 const rendererFile = join(__dirname, '../renderer/index.html')
 const expectedUrl = devUrl ? new URL(devUrl).href : pathToFileURL(rendererFile).href
@@ -25,6 +36,8 @@ function saveBounds(): void {
 
 function createWindow(): void {
   closing = false
+  shutdownPromise = undefined
+  simulator.resume()
   const settings = repository.get()
   nativeTheme.themeSource = settings.theme
   const workArea = screen.getPrimaryDisplay().workArea
@@ -54,8 +67,7 @@ function createWindow(): void {
     event.preventDefault()
     clearTimeout(boundsTimer)
     saveBounds()
-    closing = true
-    void repository.flush().then(() => window?.close())
+    void shutdown().then(() => { closing = true; window?.close() })
   })
   window.on('closed', () => { window = null })
   window.once('ready-to-show', () => window?.show())
@@ -68,7 +80,7 @@ function queueBounds(): void {
 }
 
 void app.whenReady().then(async () => {
-  await repository.load()
+  await Promise.all([repository.load(), simulatorRepository.load()])
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   session.defaultSession.setPermissionCheckHandler(() => false)
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -77,13 +89,9 @@ void app.whenReady().then(async () => {
       : "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; frame-src 'none'"
     callback({ responseHeaders: { ...details.responseHeaders, 'Content-Security-Policy': [csp] } })
   })
-  registerSettings(repository, () => window, expectedUrl)
-  Menu.setApplicationMenu(Menu.buildFromTemplate([
-    ...(process.platform === 'darwin' ? [{ role: 'appMenu' as const }] : []),
-    { role: 'editMenu' },
-    { label: '视图', submenu: [{ role: 'reload' }, { role: 'toggleDevTools' }, { type: 'separator' }, { role: 'resetZoom' }, { role: 'zoomIn' }, { role: 'zoomOut' }, { role: 'togglefullscreen' }] },
-    { role: 'windowMenu' },
-  ]))
+  registerSettings(repository, () => window, expectedUrl, updateMenu)
+  registerSimulator(simulator, () => window, expectedUrl)
+  updateMenu(repository.get())
   createWindow()
   app.on('activate', () => { if (!window) createWindow() })
 })
@@ -93,5 +101,5 @@ app.on('before-quit', (event) => {
   event.preventDefault()
   clearTimeout(boundsTimer)
   saveBounds()
-  void repository.flush().then(() => { quitting = true; closing = true; app.quit() })
+  void shutdown().then(() => { quitting = true; closing = true; app.quit() })
 })

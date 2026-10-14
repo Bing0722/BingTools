@@ -5,10 +5,12 @@ import { PageHeader } from './page-header'
 import { useSettings } from '@/stores/settings-store'
 import { useMedia } from '@/lib/use-media'
 import { Button } from '@/components/ui/button'
+import { useTranslation } from 'react-i18next'
 import { Dialog } from '@/components/ui/dialog'
 
 const scrollPositions = new Map<string, number>()
 export function AppShell() {
+  const { t } = useTranslation()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const narrow = useMedia('(max-width: 959px)')
@@ -16,7 +18,7 @@ export function AppShell() {
   const { preferences, update, error, warning, load } = useSettings()
   const scroll = useRef<HTMLElement>(null)
   const collapsed = narrow || preferences.sidebarCollapsed
-  const title = pathname.startsWith('/settings') ? '设置' : pathname.startsWith('/examples/detail') ? '项目详情' : pathname.startsWith('/examples') ? '示例空间' : '工作台'
+  const title = t(pathname === '/settings' ? 'settings' : 'simulator')
   function toggle() {
     if (narrow) setOverlay((open) => !open)
     else void update({ sidebarCollapsed: !preferences.sidebarCollapsed })
@@ -42,12 +44,12 @@ export function AppShell() {
   }, [pathname])
 
   return <div className={`app-shell ${window.app.platform === 'darwin' ? 'platform-mac' : ''}`} style={{ '--sidebar-width': `${collapsed ? 56 : preferences.sidebarWidth}px` } as React.CSSProperties}>
-    <a className="skip-link" href="#main-content">跳到主要内容</a>
+    <button className="skip-link" onClick={() => scroll.current?.focus()}>{t('skipContent')}</button>
     <AppSidebar collapsed={collapsed} onNavigate={() => setOverlay(false)} />
     <section className="main-panel"><PageHeader title={title} collapsed={collapsed} toggle={toggle} />
-      {(error || warning) && <div className="notice" role={error ? 'alert' : 'status'}><span>{error || warning}</span>{error && <Button variant="ghost" size="sm" onClick={() => void load()}>重新读取</Button>}</div>}
-      <main id="main-content" ref={scroll} className="page-scroll" tabIndex={-1} aria-label={title}><Outlet /></main>
+      {(error || warning) && <div className="notice" role={error ? 'alert' : 'status'}><span>{t(error || warning || '')}</span>{error && <Button variant="ghost" size="sm" onClick={() => void load()}>{t('retry')}</Button>}</div>}
+      <main id="main-content" ref={scroll} className={`page-scroll ${pathname === '/simulator' ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
     </section>
-    <Dialog open={narrow && overlay} onOpenChange={setOverlay} title="导航" description="选择要打开的页面。"><div className="mobile-nav"><AppSidebar collapsed={false} onNavigate={() => setOverlay(false)} /></div></Dialog>
+    <Dialog open={narrow && overlay} onOpenChange={setOverlay} title={t('navigation')} description={t('choosePage')}><div className="mobile-nav"><AppSidebar collapsed={false} onNavigate={() => setOverlay(false)} /></div></Dialog>
   </div>
 }

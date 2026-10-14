@@ -1,8 +1,8 @@
 # BingTools
 
-基于 Electron 的桌面工作台。采用左侧导航、右侧内容的布局，面向后续逐步加入的工具与工作页面。
+基于 Electron 的本地 HTTP Mock 桌面工具。左侧导航，右侧配置客户和接口，下方实时查看请求日志。
 
-当前已完成可运行的桌面雏形：工作台、示例列表与详情、设置页、主题切换、侧栏折叠与宽度设置，以及本地设置持久化。示例项目为静态演示；具体业务功能待确定。
+当前版本 0.2：客户管理、HTTP 监听、接口独立开关与运行中更新、JSON／文本响应、日志筛选与脱敏、应用内通知、简中／英文／跟随系统。保留主题、侧栏和本地设置；旧演示页面已移除。
 
 ## 文档入口
 
@@ -11,7 +11,7 @@
 | [AGENTS.md](./AGENTS.md) | AI 与开发者共同遵循的开发约定 |
 | [架构设计](./docs/architecture.md) | 技术选型、目录、进程边界、路由与数据管理 |
 | [视觉与交互规范](./docs/design.md) | 布局、配色、尺寸、组件状态和桌面交互 |
-| [首版范围](./docs/product.md) | 框架阶段交付范围、验收条件和待定事项 |
+| [首版范围](./docs/product.md) | 服务器仿真交付范围与验收条件 |
 | [验证记录](./docs/verification.md) | 已执行的检查、桌面验证与平台限制 |
 
 ## 已确定的方向
@@ -20,7 +20,7 @@
 - Tailwind CSS + shadcn/ui 构建界面，Lucide React 提供图标。
 - React Router 管理页面，Zustand 管理确有共享需求的界面状态。
 - 采用克制、中性、紧凑但清晰的桌面工作台风格，支持浅色、深色和跟随系统。
-- 第一版以单窗口和少量示例页面验证框架，业务能力按需求逐步加入。
+- Node 内置 HTTP 在主进程运行服务，受控 IPC 隔离系统能力；i18next + react-i18next 提供即时语言切换。
 
 这些是项目选型，不代表参考产品使用了相同技术。初始化时应核对依赖兼容性，锁定版本并提交锁文件。
 
@@ -38,7 +38,7 @@ pnpm dev
 ```sh
 pnpm typecheck       # TypeScript 检查
 pnpm lint            # ESLint 检查
-pnpm test            # 设置与 IPC 边界测试
+pnpm test            # 真实 HTTP、持久化与边界测试
 pnpm build           # 生产构建
 pnpm start           # 运行已构建版本
 pnpm test:desktop    # 真实 Electron 自动验证，先执行 build
@@ -52,7 +52,7 @@ macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。�
 
 ## 数据与验证
 
-正式设置存放在 Electron `userData` 目录下的 `settings.json`；macOS 默认位于 `~/Library/Application Support/BingTools/`。包括主题、侧栏偏好和窗口位置。损坏文件会备份，未知的更高设置版本不会被覆盖。
+正式设置存放在 Electron `userData` 目录下的 `settings.json`；macOS 默认位于 `~/Library/Application Support/BingTools/`。包括主题、语言、侧栏偏好和窗口位置；v1 设置会迁移到 v2。客户及接口独立存入 `simulator.json`。损坏文件会备份，未知的更高版本不会被覆盖。日志和通知只存在当前会话。
 
 桌面测试使用独立临时目录，不修改正式设置。测试截图输出到已忽略的 `test-results/`。
 
@@ -62,6 +62,12 @@ macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。�
 
 每完成一轮有意义的修改，检查差异、执行相关验证并进行 Git 本地提交。只提交当前任务相关文件，不自动推送远端。
 
-## 下一步
+## 使用流程
 
-确定第一项真实工具功能，把示例路由替换为实际业务页面。侧栏拖拽调宽、全局命令面板和辅助预览面板仍属于后续增强。
+1. 在服务器仿真页新增客户，设置本机监听 IP 和端口，默认 `127.0.0.1:8080`。
+2. 新增接口，填写方法、路径和响应，打开启用开关并保存。
+3. 点击启动服务，使用外部客户端访问，例如 `curl http://127.0.0.1:8080/api/example`。
+4. 日志面板查看请求结果，点击记录查看脱敏请求头和截断后的正文预览。
+5. 接口开关和保存立即作用于后续请求；切换客户或修改监听地址前先停止。
+
+只支持固定 JSON／文本 HTTP 响应；不执行脚本，不支持 HTTPS 或自动启动。请求和响应上限各 1 MiB；日志预览各 8 KiB。关闭窗口停止服务，重新打开不会自动监听。

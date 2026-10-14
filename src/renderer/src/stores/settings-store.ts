@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { useNotifications } from './notification-store'
 import type { Preferences, SettingsPatch } from '../../../shared/schemas/settings'
 import { defaultSettings, preferencesOf } from '../../../shared/schemas/settings'
 
@@ -8,6 +9,7 @@ interface SettingsState {
   saving: boolean
   error?: string
   warning?: string
+  systemLocale?: string
   load: () => Promise<void>
   update: (patch: SettingsPatch) => Promise<boolean>
 }
@@ -16,10 +18,10 @@ export const useSettings = create<SettingsState>((set, get) => ({
   load: async () => {
     try {
       const result = await window.app.settings.get()
-      if (!result.ok) throw new Error(result.error.message)
+      if (!result.ok) throw new Error(result.error.code)
       set({ ...result.data, ready: true, error: undefined })
     } catch {
-      set({ ready: true, error: '无法连接本地设置服务，请重新加载。' })
+      set({ ready: true, error: 'CONNECTION_FAILED' })
     }
   },
   update: async (patch) => {
@@ -27,11 +29,13 @@ export const useSettings = create<SettingsState>((set, get) => ({
     set({ saving: true, error: undefined })
     try {
       const result = await window.app.settings.update(patch)
-      if (!result.ok) { set({ error: result.error.message, saving: false }); return false }
+      if (!result.ok) { set({ error: result.error.code, saving: false }); useNotifications.getState().push(result.error.code, 'error'); return false }
       set({ ...result.data, saving: false })
+      useNotifications.getState().push('saved')
       return true
     } catch {
-      set({ error: '本地服务暂时不可用，设置未保存，请重试。', saving: false })
+      set({ error: 'CONNECTION_FAILED', saving: false })
+      useNotifications.getState().push('CONNECTION_FAILED', 'error')
       return false
     }
   },
