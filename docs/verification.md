@@ -79,4 +79,12 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 当前版本来自 package.json，嵌入当前版本说明，远端更新说明作为纯文本展示。
 - 工作流为 Windows x64 / macOS ARM64 原生打包；标签匹配版本后，全部成功才发布。
 - macOS 未签名时限制为 GitHub 手动下载，不宣称自动安装已验收；Windows 安装包签名及跨版本实际安装仍需单独验证。
-- GitHub Actions 与正式 Release 的最终结果在发布完成后追加记录。
+- GitHub Actions 与正式 Release 的最终结果见下方追加记录。
+
+### 0.3.0 远端最终结果
+
+- [主分支构建](https://github.com/Bing0722/BingTools/actions/runs/38521251563) 和 [正式发布构建](https://github.com/Bing0722/BingTools/actions/runs/38521512272) 均成功。Windows 2022 x64 与 macOS 14 ARM64 都通过类型检查、Lint、30 项测试和原生发布包构建。
+- [v0.3.0 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.3.0) 已发布，包含 Windows x64 NSIS EXE、macOS ARM64 DMG/ZIP、对应 blockmap、latest.yml 与 latest-mac.yml，共 8 个资产。
+- 下载并核对两份公开元数据：版本 0.3.0、资产名、SHA-512 字段及 releaseNotes 均存在。
+- 实际启动本机打包应用，使用独立临时目录执行 window.app.updater.check()；真实 GitHub 更新请求返回 mode=github、currentVersion=0.3.0、phase=current，确认更新源可用。未执行安装。
+- 当前包未签名；macOS 明确禁用原位安装并提供 GitHub 手动下载。Windows 安装程序已构建并公开，但未在交互式 Windows 桌面验收安装／升级；后续跨版本升级仍需真实双版本测试。
