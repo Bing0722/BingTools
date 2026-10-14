@@ -13,6 +13,7 @@ export interface AppApi {
   updater: {
     getSnapshot(): Promise<Result<UpdateSnapshot>>
     check(): Promise<Result<UpdateSnapshot>>
+    openRelease(): Promise<Result<UpdateSnapshot>>
     download(): Promise<Result<UpdateSnapshot>>
     install(): Promise<Result<UpdateSnapshot>>
     onEvent(listener: (snapshot: UpdateSnapshot) => void): () => void

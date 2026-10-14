@@ -1,10 +1,17 @@
-import { ipcMain, type BrowserWindow } from 'electron'
+import { ipcMain, shell, type BrowserWindow } from 'electron'
 import { createGuard } from './guard'
 import type { UpdateController } from '../services/update-controller'
 import type { Result } from '../../shared/contracts/app-api'
 import type { UpdateSnapshot } from '../../shared/contracts/updater'
 export function registerUpdater(controller: UpdateController, getWindow: () => BrowserWindow | null, expectedUrl: string): void {
   const allowed = createGuard(getWindow, expectedUrl)
+  ipcMain.handle('updater:openRelease', async (event) => {
+    if (!allowed(event)) return { ok: false, error: { code: 'FORBIDDEN', message: 'FORBIDDEN' } }
+    const repository = controller.snapshot().repository
+    if (!repository || !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/.test(repository)) return { ok: false, error: { code: 'UPDATE_CHECK_FAILED', message: 'UPDATE_CHECK_FAILED' } }
+    try { await shell.openExternal(`https://github.com/${repository}/releases/latest`); return { ok: true, data: controller.snapshot() } }
+    catch { return { ok: false, error: { code: 'UPDATE_CONNECTION_FAILED', message: 'UPDATE_CONNECTION_FAILED' } } }
+  })
   for (const action of ['snapshot', 'check', 'download', 'install'] as const) {
     ipcMain.handle(`updater:${action}`, async (event): Promise<Result<UpdateSnapshot>> => {
       if (!allowed(event)) return { ok: false, error: { code: 'FORBIDDEN', message: 'FORBIDDEN' } }

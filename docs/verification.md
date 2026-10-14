@@ -71,3 +71,12 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 查看 `test-results/update-demo.png`，演示标签、无网络说明、版本和状态均可见。
 - `release.config.json` 保持空仓库；没有配置 remote、连接真实更新仓库、上传资产或发布 Release。
 - 真实 GitHub 检查／下载、签名校验和跨版本安装尚未验收，Windows/Linux 未验证。`package:release` 配置仅预留，空仓库默认拒绝发布包构建；现有本机演示包仍未签名。
+
+## 2026-10-14：0.3.0 GitHub 发布接入
+
+- 用户确认公开源码与安装包，已创建 Bing0722/BingTools 并配置 origin。
+- 本机 30 项测试、类型检查、Lint、生产构建和 macOS 目录打包通过。
+- 当前版本来自 package.json，嵌入当前版本说明，远端更新说明作为纯文本展示。
+- 工作流为 Windows x64 / macOS ARM64 原生打包；标签匹配版本后，全部成功才发布。
+- macOS 未签名时限制为 GitHub 手动下载，不宣称自动安装已验收；Windows 安装包签名及跨版本实际安装仍需单独验证。
+- GitHub Actions 与正式 Release 的最终结果在发布完成后追加记录。

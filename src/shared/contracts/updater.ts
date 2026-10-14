@@ -6,6 +6,9 @@ export interface UpdateSnapshot {
   repository?: string
   phase: UpdatePhase
   version?: string
+  releaseNotes?: string
+  releaseDate?: string
+  canInstall?: boolean
   progress: number
   error?: string
 }

@@ -193,5 +193,8 @@
   "UPDATE_CHECK_FAILED": "Unable to check for updates. Check the network, GitHub repository and release metadata.",
   "UPDATE_DOWNLOAD_FAILED": "Download or verification failed. Check for updates and retry.",
   "UPDATE_INSTALL_FAILED": "Installation failed. Check app signing and installation permissions.",
-  "updateDemoAvailable": "Demo: simulated update available"
+  "updateDemoAvailable": "Demo: simulated update available",
+  "updateReleaseNotes": "Release notes",
+  "UPDATE_MANUAL_ONLY": "This macOS build is unsigned. Download the new version from GitHub and replace it manually.",
+  "updateOpenRelease": "GitHub downloads"
 }

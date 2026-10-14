@@ -43,6 +43,6 @@ BingTools 是本地 HTTP Mock 桌面工具。程序作为服务器启动监听�
 
 `pnpm test` 验证服务、配置和边界；`pnpm test:desktop` 在独立临时数据目录驱动真实 Electron 窗口并发送真实 HTTP 请求。先运行 `pnpm build`。完整执行记录、产物位置及限制见 [验证记录](verification.md)。
 
-## 应用更新（本地演示）
+## 应用更新与版本发布
 
-设置页提供更新入口，当前仅模拟版本和下载进度，明确标记演示，不访问网络或执行安装。GitHub Releases 后端和发布配置已预留，仓库配置为空，真实远端升级尚未启用及验证。后续接入流程见 [应用更新](updates.md)。
+更新源为公开 GitHub 仓库 Bing0722/BingTools；设置显示当前版本、新版本及文本更新说明，版本由 package.json 统一管理。Windows x64 和 macOS ARM64 在 GitHub Actions 原生打包，版本标签触发发布。Windows 使用 NSIS 更新；未签名 macOS 提供 GitHub 手动下载入口。实际验收范围见验证记录。

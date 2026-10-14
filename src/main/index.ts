@@ -9,6 +9,7 @@ import { registerSimulator } from './ipc/simulator'
 import { UpdateController, demoBackend } from './services/update-controller'
 import { registerUpdater } from './ipc/updater'
 declare const __UPDATE_REPOSITORY__: string
+declare const __MAC_SIGNED__: boolean
 import { updateMenu } from './menu'
 
 app.setName('BingTools')
@@ -97,7 +98,7 @@ void app.whenReady().then(async () => {
   const updateRepository = __UPDATE_REPOSITORY__
   const mode = !updateRepository ? 'demo' : app.isPackaged ? 'github' : 'unavailable'
   const backend = mode === 'github' ? (await import('./services/github-updater')).githubBackend(updateRepository, () => updater.installFailed()) : demoBackend(app.getVersion())
-  const updater = new UpdateController(backend, { mode, currentVersion: app.getVersion(), repository: updateRepository || undefined }, async () => {
+  const updater = new UpdateController(backend, { mode, currentVersion: app.getVersion(), repository: updateRepository || undefined, canInstall: process.platform !== 'darwin' || __MAC_SIGNED__ }, async () => {
     clearTimeout(boundsTimer)
     saveBounds()
     await shutdown()

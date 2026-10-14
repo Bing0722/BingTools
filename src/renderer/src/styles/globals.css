@@ -261,3 +261,6 @@ textarea { resize:vertical; }
 .update-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
 .update-progress { display:flex; align-items:center; gap:12px; margin:12px 0; font-size:12px; }
 .update-progress progress { flex:1; height:8px; accent-color:var(--accent); }
+
+.update-notes { margin-top:14px; font-size:12px; }
+.update-notes pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow:auto; padding:12px; background:var(--sidebar); border-radius:6px; font:12px/1.7 inherit; }

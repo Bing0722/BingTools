@@ -1,6 +1,6 @@
 import type { UpdateSnapshot } from '../../shared/contracts/updater'
 export interface UpdateBackend {
-  check(): Promise<string | undefined>
+  check(): Promise<string | { version: string; releaseNotes?: string; releaseDate?: string } | undefined>
   download(progress: (percent: number) => void): Promise<void>
   install(): void
 }
@@ -8,7 +8,7 @@ export interface UpdateBackend {
 export class UpdateController {
   private state: UpdateSnapshot
   private listeners = new Set<(state: UpdateSnapshot) => void>()
-  constructor(private backend: UpdateBackend, options: Pick<UpdateSnapshot, 'mode' | 'currentVersion' | 'repository'>, private prepareInstall: () => Promise<void> = async () => {}, private recoverInstall: () => void = () => {}) {
+  constructor(private backend: UpdateBackend, options: Pick<UpdateSnapshot, 'mode' | 'currentVersion' | 'repository' | 'canInstall'>, private prepareInstall: () => Promise<void> = async () => {}, private recoverInstall: () => void = () => {}) {
     this.state = { ...options, phase: 'idle', progress: 0, revision: 0 }
   }
   snapshot(): UpdateSnapshot { return { ...this.state } }
@@ -24,15 +24,17 @@ export class UpdateController {
   async check(): Promise<UpdateSnapshot> {
     this.assertAvailable()
     if (this.state.phase === 'downloaded') throw new Error('UPDATE_ALREADY_DOWNLOADED')
-    this.set({ phase: 'checking', error: undefined, progress: 0, version: undefined })
+    this.set({ phase: 'checking', error: undefined, progress: 0, version: undefined, releaseNotes: undefined, releaseDate: undefined })
     try {
-      const version = await this.backend.check()
-      this.set({ phase: version ? 'available' : 'current', version })
+      const result = await this.backend.check()
+      const info = typeof result === 'string' ? { version: result } : result
+      this.set({ phase: info ? 'available' : 'current', ...info })
     } catch { this.set({ phase: 'error', error: 'UPDATE_CHECK_FAILED' }) }
     return this.snapshot()
   }
   async download(): Promise<UpdateSnapshot> {
     this.assertAvailable()
+    if (this.state.canInstall === false) throw new Error('UPDATE_MANUAL_ONLY')
     if (this.state.phase !== 'available') throw new Error('UPDATE_CHECK_FIRST')
     this.set({ phase: 'downloading', error: undefined, progress: 0 })
     try {
@@ -48,6 +50,7 @@ export class UpdateController {
   }
   async install(): Promise<UpdateSnapshot> {
     this.assertAvailable()
+    if (this.state.canInstall === false) throw new Error('UPDATE_MANUAL_ONLY')
     if (this.state.mode === 'demo') throw new Error('UPDATE_DEMO_ONLY')
     if (this.state.phase !== 'downloaded') throw new Error('UPDATE_DOWNLOAD_FIRST')
     this.set({ phase: 'installing', error: undefined })

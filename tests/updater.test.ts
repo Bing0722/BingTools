@@ -64,3 +64,13 @@ it('recovers application lifecycle after asynchronous installer failure', async 
   expect(recover).toHaveBeenCalledOnce()
   expect(controller.snapshot()).toMatchObject({ phase: 'error', error: 'UPDATE_INSTALL_FAILED' })
 })
+
+it('preserves release notes and enforces manual installation for unsigned builds', async () => {
+  const source = backend()
+  source.check = async () => ({ version: '0.3.0', releaseNotes: '<script>untrusted notes</script>', releaseDate: '2026-10-14T00:00:00Z' })
+  const controller = new UpdateController(source, { ...options, canInstall: false })
+  expect(await controller.check()).toMatchObject({ version: '0.3.0', releaseNotes: '<script>untrusted notes</script>' })
+  await expect(controller.download()).rejects.toThrow('UPDATE_MANUAL_ONLY')
+  await expect(controller.install()).rejects.toThrow('UPDATE_MANUAL_ONLY')
+  expect(source.download).not.toHaveBeenCalled()
+})

@@ -2,7 +2,7 @@
 
 基于 Electron 的本地 HTTP Mock 桌面工具。左侧导航，右侧配置客户和接口，下方实时查看请求日志。
 
-当前版本 0.2：客户管理、HTTP 监听、接口独立开关与运行中更新、JSON／文本响应、日志筛选与脱敏、应用内通知、简中／英文／跟随系统。保留主题、侧栏和本地设置；旧演示页面已移除。
+当前版本 0.3.0：客户管理、HTTP 监听、接口独立开关与运行中更新、JSON／文本响应、日志筛选与脱敏、应用内通知、简中／英文／跟随系统。保留主题、侧栏和本地设置；旧演示页面已移除。
 
 ## 文档入口
 
@@ -12,7 +12,7 @@
 | [架构设计](./docs/architecture.md) | 技术选型、目录、进程边界、路由与数据管理 |
 | [视觉与交互规范](./docs/design.md) | 布局、配色、尺寸、组件状态和桌面交互 |
 | [首版范围](./docs/product.md) | 服务器仿真交付范围与验收条件 |
-| [应用更新](./docs/updates.md) | 本地更新演示与后续 GitHub Releases 接入 |
+| [应用更新](./docs/updates.md) | GitHub Releases、Windows/macOS 自动打包与更新 |
 | [验证记录](./docs/verification.md) | 已执行的检查、桌面验证与平台限制 |
 
 ## 已确定的方向
@@ -48,7 +48,7 @@ pnpm package:mac     # macOS ZIP 包
 pnpm package:release # 配置仓库后生成更新发布包，仅本地构建，不上传
 ```
 
-macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。当前使用 Electron 默认应用图标，未签名、未公证，不作为公开发行包。其他平台尚未验证。
+macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。当前使用 Electron 默认图标，未签名、未公证。Windows x64 与 macOS ARM64 由 GitHub Actions 原生打包，测试与发布结果见验证记录。
 
 打包配置复用安装好的 Electron 分发目录，只打包当前平台及架构。跨平台或跨架构打包应移除或调整 `build.electronDist`，再准备对应目标的运行时；未来引入原生模块时重新启用依赖重建。
 
@@ -76,6 +76,6 @@ macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。�
 
 ## 应用更新
 
-设置页已加入本地更新演示：模拟检查版本、下载进度和完成状态，不连接 GitHub，不下载文件、不执行安装。`release.config.json` 暂时留空；后续填入公开仓库 `owner/repo`，重新构建即可启用已预留的 GitHub Releases 更新通道。当前演示包不能自动发现远端版本，首次接入需手动分发配置好的基础版本。
+设置页连接 [GitHub Releases](https://github.com/Bing0722/BingTools/releases)，显示统一版本号及更新说明。Windows 提供检查、下载和重启安装流程；macOS 暂未签名，提供 GitHub 下载页手动更新。
 
-详细产物、版本和签名要求见 [应用更新说明](./docs/updates.md)。本次未连接或发布任何远端仓库。
+推送 main 自动测试和打包；推送与 package.json 一致的版本标签（如 `v0.3.0`），两个平台成功后自动发布安装包、更新元数据和更新说明。见 [发布指南](./docs/updates.md) 与 [更新记录](./CHANGELOG.md)。

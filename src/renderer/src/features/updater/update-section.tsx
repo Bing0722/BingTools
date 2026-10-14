@@ -46,9 +46,13 @@ export function UpdateSection() {
       {snapshot.phase === 'downloading' && <div className="update-progress"><progress aria-label={t('updateProgress')} max={100} value={snapshot.progress} /><span>{Math.round(snapshot.progress)}%</span></div>}
       {snapshot.mode === 'unavailable' && <p className="field-hint">{t('UPDATE_PACKAGED_ONLY')}</p>}
       {snapshot.mode === 'demo' && snapshot.phase === 'downloaded' && <p className="field-hint">{t('updateDemoComplete')}</p>}
+      {snapshot.mode === 'github' && snapshot.canInstall === false && <p className="field-hint">{t('UPDATE_MANUAL_ONLY')}</p>}
+      {<details className="update-notes" open><summary>{t('updateReleaseNotes')}{snapshot.releaseDate && ` · ${new Date(snapshot.releaseDate).toLocaleDateString()}`}</summary><pre>{snapshot.releaseNotes || __RELEASE_NOTES__}</pre></details>}
       <div className="update-actions">
+        {snapshot.repository && <Button variant="outline" onClick={() => void run(() => window.app.updater.openRelease())}>{t('updateOpenRelease')}</Button>
+        }
         <Button variant="outline" disabled={busy || snapshot.mode === 'unavailable' || snapshot.phase === 'downloaded'} onClick={() => void run(() => window.app.updater.check())}><RefreshCw size={14} />{t(snapshot.mode === 'demo' ? 'updateDemoCheck' : 'updateCheck')}</Button>
-        {snapshot.phase === 'available' && <Button disabled={busy} onClick={() => void run(() => window.app.updater.download())}><Download size={14} />{t(snapshot.mode === 'demo' ? 'updateDemoDownload' : 'updateDownload')}</Button>}
+        {snapshot.phase === 'available' && snapshot.canInstall !== false && <Button disabled={busy} onClick={() => void run(() => window.app.updater.download())}><Download size={14} />{t(snapshot.mode === 'demo' ? 'updateDemoDownload' : 'updateDownload')}</Button>}
         {snapshot.phase === 'downloaded' && snapshot.mode === 'github' && <Button disabled={busy} onClick={() => setConfirm(true)}>{t('updateInstall')}</Button>}
       </div>
     </> : <p className="field-hint">{t('loading')}</p>}

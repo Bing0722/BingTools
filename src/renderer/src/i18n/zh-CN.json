@@ -193,5 +193,8 @@
   "UPDATE_CHECK_FAILED": "检查更新失败，请检查网络、GitHub 仓库及 Release 更新元数据。",
   "UPDATE_DOWNLOAD_FAILED": "下载或校验失败，请重新检查更新后重试。",
   "UPDATE_INSTALL_FAILED": "安装未能完成。请检查应用签名和安装权限。",
-  "updateDemoAvailable": "演示：发现模拟更新"
+  "updateDemoAvailable": "演示：发现模拟更新",
+  "updateReleaseNotes": "更新说明",
+  "UPDATE_MANUAL_ONLY": "当前 macOS 包未签名，请从 GitHub 下载新版本后手动替换。",
+  "updateOpenRelease": "GitHub 下载页"
 }

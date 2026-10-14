@@ -11,6 +11,7 @@ const api: AppApi = {
   updater: {
     getSnapshot: () => ipcRenderer.invoke('updater:snapshot'),
     check: () => ipcRenderer.invoke('updater:check'),
+    openRelease: () => ipcRenderer.invoke('updater:openRelease'),
     download: () => ipcRenderer.invoke('updater:download'),
     install: () => ipcRenderer.invoke('updater:install'),
     onEvent: (listener) => {

@@ -15,7 +15,9 @@ export function githubBackend(repository: string, installFailed: () => void): Up
     async check() {
       const result = await autoUpdater.checkForUpdates()
       if (!result) throw new Error('UPDATE_CHECK_FAILED')
-      return result.isUpdateAvailable ? result.updateInfo.version : undefined
+      const info = result.updateInfo
+      const notes = typeof info.releaseNotes === 'string' ? info.releaseNotes : info.releaseNotes?.map((entry) => `${entry.version}\n${entry.note ?? ''}`).join('\n\n')
+      return result.isUpdateAvailable ? { version: info.version, releaseNotes: notes?.slice(0, 32768), releaseDate: info.releaseDate } : undefined
     },
     async download(progress) {
       const listener = (value: { percent: number }) => progress(value.percent)

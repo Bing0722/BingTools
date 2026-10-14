@@ -97,4 +97,4 @@ LogBuffer 最多 1000 条，预览分别最多 8 KiB、UTF-8 边界安全、敏�
 
 `services/update-controller.ts` 是可注入后端的更新状态机，`demoBackend` 为默认无网络演示；`github-updater.ts` 包装 electron-updater，仅配置仓库且打包后启用。仓库取构建时 `release.config.json` 或 `BINGTOOLS_UPDATE_REPOSITORY`，不保存用户级更新源或 Token。
 
-固定 `updater:*` IPC 复用来源检查，订阅返回清理函数，快照包含 revision。设置页 UpdateSection 保留展示副本；更新状态在主进程，切换页面不会取消后台动作。真实安装前调用已有 shutdown，安装失败恢复应用生命周期。暂不启用远端，详细边界与未验证事项见 [应用更新](updates.md)。
+固定 `updater:*` IPC 复用来源检查，订阅返回清理函数，快照包含 revision。设置页 UpdateSection 保留展示副本；更新状态在主进程，切换页面不会取消后台动作。真实安装前调用已有 shutdown，安装失败恢复应用生命周期。远端已接入公开 Bing0722/BingTools，版本由构建统一注入，GitHub 更新说明以文本显示；未签名 macOS 限制为手动下载。详细边界与未验证事项见 [应用更新](updates.md)。

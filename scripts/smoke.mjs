@@ -90,9 +90,16 @@ try {
   await page.getByLabel('语言', { exact: true }).selectOption('en')
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor()
   const updatePanel = page.getByRole('region', { name: 'Application updates', exact: true })
-  await updatePanel.getByRole('button', { name: 'Demo: check for updates', exact: true }).click()
-  await updatePanel.getByRole('button', { name: 'Demo: download progress', exact: true }).click()
-  await updatePanel.getByText(/Demo complete/).waitFor()
+  const updateState = await page.evaluate(() => window.app.updater.getSnapshot())
+  assert.equal(updateState.ok, true)
+  if (updateState.data.mode === 'demo') {
+    await updatePanel.getByRole('button', { name: 'Demo: check for updates', exact: true }).click()
+    await updatePanel.getByRole('button', { name: 'Demo: download progress', exact: true }).click()
+    await updatePanel.getByText(/Demo complete/).waitFor()
+  } else {
+    assert.equal(updateState.data.repository, 'Bing0722/BingTools')
+    await updatePanel.getByText('BingTools 0.3.0', { exact: false }).waitFor()
+  }
   assert.equal((await page.evaluate(() => window.app.updater.install())).ok, false)
   await updatePanel.scrollIntoViewIfNeeded()
   await screenshot(page, 'update-demo')

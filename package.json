@@ -1,6 +1,6 @@
 {
   "name": "bingtools",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "A calm desktop workspace for everyday tools",
   "private": true,
   "main": "./out/main/index.js",
@@ -85,5 +85,9 @@
       "target": "AppImage",
       "category": "Utility"
     }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Bing0722/BingTools.git"
   }
 }
