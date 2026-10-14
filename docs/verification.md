@@ -96,3 +96,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 类型检查、Lint、生产构建、30 项测试和 macOS Electron 桌面流程通过。桌面新增验证动画中间宽度、最终宽度、标题栏位置不变、Cmd+B 展开与减少动态效果；原有 HTTP、主题、语言、窄窗、关闭重开流程通过。
 - 检查了 shell-expanded / shell-collapsed 与深浅主题页面截图。Playwright 页面截图不包含原生三色按钮；原生按钮视觉与拖动、全屏行为未人工验收。Windows 原生控制、Alt 菜单和贴靠仍待 Windows 实机验证。本轮未重新发布安装包。
 - 构建仍有已知 Zod 注释与包体积提示，无新增构建错误。
+
+## 2026-10-14：JSON 美化与格式诊断
+
+- JSON 模式提供两空格缩进美化与即时格式状态；无效 JSON 标记输入框、禁用美化，原有保存校验继续阻止写入。切换文本模式移除 JSON 校验。
+- 美化只修改草稿，保留大整数、重复键、转义及数字原文；超过 1 MiB 时保留原稿。运行时提供错误位置才显示行列。
+- 类型检查、Lint、生产构建、34 项测试通过；第一次受限沙箱中的 HTTP 测试因回环监听权限失败，授权执行后全通过。
+- macOS Electron 桌面流程验证了美化结果、格式正确提示、无效输入标记与禁用按钮、文本切换、保存拦截及既有 HTTP/语言/主题流程。新增截图 json-formatted / json-invalid；修复校验区与说明文字重叠，并增加实际边界检查。
+- Windows 实机、本轮安装包发布未执行；无新增依赖。

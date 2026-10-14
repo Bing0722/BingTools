@@ -46,3 +46,5 @@ BingTools 是本地 HTTP Mock 桌面工具。程序作为服务器启动监听�
 ## 应用更新与版本发布
 
 更新源为公开 GitHub 仓库 Bing0722/BingTools；设置显示当前版本、新版本及文本更新说明，版本由 package.json 统一管理。Windows x64 和 macOS ARM64 在 GitHub Actions 原生打包，版本标签触发发布。Windows 使用 NSIS 更新；未签名 macOS 提供 GitHub 手动下载入口。实际验收范围见验证记录。
+
+JSON 响应可一键美化并即时判断格式，格式错误禁用美化且保存失败；文本模式允许任意文本。美化不会自动保存或改变正在运行的响应。

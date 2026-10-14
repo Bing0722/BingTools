@@ -196,5 +196,8 @@
   "updateDemoAvailable": "Demo: simulated update available",
   "updateReleaseNotes": "Release notes",
   "UPDATE_MANUAL_ONLY": "This macOS build is unsigned. Download the new version from GitHub and replace it manually.",
-  "updateOpenRelease": "GitHub downloads"
+  "updateOpenRelease": "GitHub downloads",
+  "beautifyJson": "Beautify JSON",
+  "jsonValid": "Valid JSON",
+  "jsonLocation": "Line {{line}}, column {{column}}"
 }

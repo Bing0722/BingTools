@@ -196,5 +196,8 @@
   "updateDemoAvailable": "演示：发现模拟更新",
   "updateReleaseNotes": "更新说明",
   "UPDATE_MANUAL_ONLY": "当前 macOS 包未签名，请从 GitHub 下载新版本后手动替换。",
-  "updateOpenRelease": "GitHub 下载页"
+  "updateOpenRelease": "GitHub 下载页",
+  "beautifyJson": "美化 JSON",
+  "jsonValid": "JSON 格式正确",
+  "jsonLocation": "第 {{line}} 行，第 {{column}} 列"
 }

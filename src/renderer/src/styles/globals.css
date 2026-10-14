@@ -167,7 +167,7 @@ textarea { resize:vertical; }
 .address-preview { font:11px/1.6 ui-monospace,monospace; color:var(--muted-foreground); background:var(--sidebar); border:1px solid var(--border); border-radius:5px; padding:7px 9px; overflow-wrap:anywhere; }
 .response-fields { display:grid; grid-template-columns:minmax(100px,1fr) 100px 80px; gap:12px; align-items:end; }
 .enabled-field { display:flex; flex-direction:column; gap:12px; font-size:11px; color:var(--muted-foreground); padding-bottom:7px; }
-.body-field { flex:1; min-height:130px; }
+.body-field { flex:1 0 auto; min-height:190px; }
 .body-field textarea { font:12px/1.7 ui-monospace,SFMono-Regular,Consolas,monospace; min-height:120px; flex:1; tab-size:2; }
 .editor-footer { padding:10px 20px; border-top:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; font-size:10px; flex-shrink:0; }
 .customer-form { margin-top:20px; display:grid; gap:16px; }
@@ -269,3 +269,9 @@ textarea { resize:vertical; }
 
 .update-notes { margin-top:14px; font-size:12px; }
 .update-notes pre { white-space:pre-wrap; overflow-wrap:anywhere; max-height:240px; overflow:auto; padding:12px; background:var(--sidebar); border-radius:6px; font:12px/1.7 inherit; }
+
+/* JSON 工具栏与诊断留在编辑器内，不通过全局通知打断输入。 */
+.body-toolbar { display:flex; align-items:center; justify-content:space-between; min-height:30px; gap:8px; }
+.json-feedback { margin:0; font-size:11px; color:var(--muted-foreground); }
+.json-invalid { color:var(--danger); }
+.body-field textarea[aria-invalid="true"] { border-color:var(--danger); }
