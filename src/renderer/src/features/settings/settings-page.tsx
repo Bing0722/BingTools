@@ -1,3 +1,4 @@
+import { UpdateSection } from '@/features/updater/update-section'
 import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -17,6 +18,7 @@ export function SettingsPage() {
     </section>
     <section className="settings-section"><h2>{t('layout')}</h2><div className="setting-row"><div><h3>{t('collapseSidebar')}</h3><p>{t('collapseHelp')}</p></div><button className="switch" role="switch" aria-label={t('collapseSidebar')} aria-checked={preferences.sidebarCollapsed} disabled={saving} onClick={() => void update({ sidebarCollapsed: !preferences.sidebarCollapsed })}><span /></button></div><div className="setting-row"><div><h3>{t('sidebarWidth')}</h3><p>{t('widthHelp')}</p></div><select aria-label={t('sidebarWidth')} disabled={saving} value={preferences.sidebarWidth} onChange={(event) => void update({ sidebarWidth: Number(event.target.value) })}>{[200,240,280,320].map((value, index) => <option key={value} value={value}>{t(['compact','standard','wide','extraWide'][index])} · {value}px</option>)}</select></div></section>
     <section className="settings-section"><h2>{t('appInfo')}</h2><div className="setting-row"><div><h3>BingTools</h3><p>{t('appDescription')}</p></div><span className="muted">0.2.0</span></div><div className="setting-row"><div><h3>{t('resetAppearance')}</h3><p>{t('resetHelp')}</p></div><Button ref={resetButton} variant="outline" size="sm" onClick={() => setReset(true)} disabled={saving}>{t('resetAppearance')}</Button></div></section>
+    <UpdateSection />
     <div className="save-status" role="status">{t(saving ? 'saving' : error ?? 'autoSave')}</div>
     <Dialog open={reset} onOpenChange={closeReset} title={t('resetQuestion')} description={t('resetHelp')}><div className="dialog-actions"><Button variant="outline" onClick={() => closeReset(false)}>{t('cancel')}</Button><Button disabled={saving} onClick={async () => { if (await update({ theme: 'system', sidebarCollapsed: false, sidebarWidth: 240 })) closeReset(false) }}>{t('confirm')}</Button></div></Dialog>
   </div>

@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
+import type { UpdateSnapshot } from '../shared/contracts/updater'
 import type { AppApi } from '../shared/contracts/app-api'
 import type { SimulatorEvent } from '../shared/contracts/simulator'
 import type { SimulatorCommand } from '../shared/schemas/simulator'
@@ -7,6 +8,17 @@ const command = (value: SimulatorCommand) => ipcRenderer.invoke('simulator:comma
 const api: AppApi = {
   platform: process.platform as AppApi['platform'],
   settings: { get: () => ipcRenderer.invoke('settings:get'), update: (patch) => ipcRenderer.invoke('settings:update', patch) },
+  updater: {
+    getSnapshot: () => ipcRenderer.invoke('updater:snapshot'),
+    check: () => ipcRenderer.invoke('updater:check'),
+    download: () => ipcRenderer.invoke('updater:download'),
+    install: () => ipcRenderer.invoke('updater:install'),
+    onEvent: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, snapshot: UpdateSnapshot) => listener(snapshot)
+      ipcRenderer.on('updater:event', handler)
+      return () => ipcRenderer.removeListener('updater:event', handler)
+    },
+  },
   simulator: {
     getSnapshot: () => ipcRenderer.invoke('simulator:snapshot'),
     saveCustomer: (customer) => command({ type: 'saveCustomer', customer }),

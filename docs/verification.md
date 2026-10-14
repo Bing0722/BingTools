@@ -61,3 +61,13 @@ pnpm test:desktop
 pnpm package
 BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTools" node scripts/smoke.mjs
 ```
+
+## 2026-10-14：本地更新演示与 GitHub 接口预留
+
+- 在线安装并精确锁定 `electron-updater 6.8.9`，未使用离线安装。
+- `pnpm test`：4 文件、29 项通过，新增更新状态机、并发保护、演示禁止安装、失败重试、订阅清理、安装前停服顺序及异步安装失败恢复测试。
+- `pnpm typecheck`、`pnpm lint`、生产构建及 `pnpm package` 通过。
+- 打包应用的设置页完成演示检查 → 模拟下载 → 完成提示，直接调用演示安装 API 被拒绝；原有完整桌面／HTTP 流程通过。
+- 查看 `test-results/update-demo.png`，演示标签、无网络说明、版本和状态均可见。
+- `release.config.json` 保持空仓库；没有配置 remote、连接真实更新仓库、上传资产或发布 Release。
+- 真实 GitHub 检查／下载、签名校验和跨版本安装尚未验收，Windows/Linux 未验证。`package:release` 配置仅预留，空仓库默认拒绝发布包构建；现有本机演示包仍未签名。

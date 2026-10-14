@@ -1,10 +1,14 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'electron-vite'
+import release from './release.config.json'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const updateRepository = process.env.BINGTOOLS_UPDATE_REPOSITORY ?? release.repository
+if (updateRepository && !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/.test(updateRepository)) throw new Error('Invalid update repository: expected owner/repo')
+
 export default defineConfig({
-  main: { build: { externalizeDeps: false } },
+  main: { define: { __UPDATE_REPOSITORY__: JSON.stringify(updateRepository) }, build: { externalizeDeps: false, rollupOptions: { external: ['electron-updater'] } } },
   preload: { build: { externalizeDeps: false } },
   renderer: {
     build: { minify: true },

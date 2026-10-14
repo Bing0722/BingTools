@@ -92,3 +92,9 @@ LogBuffer 最多 1000 条，预览分别最多 8 KiB、UTF-8 边界安全、敏�
 使用单一 pnpm 锁文件，在线安装，连接失败先排障。`build` 包含类型检查；`package` 复用已安装的当前平台 Electron 运行时。本机 macOS ARM64 验证，签名、公证、跨平台发布另行处理。测试运行需要允许本机回环监听，桌面测试使用独立临时目录。
 
 官方参考：[Node HTTP](https://nodejs.org/api/http.html)、[Electron 安全](https://www.electronjs.org/docs/latest/tutorial/security/)、[i18next API](https://www.i18next.com/overview/api)、[React 翻译集成](https://react.i18next.com/latest/usetranslation-hook)。
+
+## 更新模块
+
+`services/update-controller.ts` 是可注入后端的更新状态机，`demoBackend` 为默认无网络演示；`github-updater.ts` 包装 electron-updater，仅配置仓库且打包后启用。仓库取构建时 `release.config.json` 或 `BINGTOOLS_UPDATE_REPOSITORY`，不保存用户级更新源或 Token。
+
+固定 `updater:*` IPC 复用来源检查，订阅返回清理函数，快照包含 revision。设置页 UpdateSection 保留展示副本；更新状态在主进程，切换页面不会取消后台动作。真实安装前调用已有 shutdown，安装失败恢复应用生命周期。暂不启用远端，详细边界与未验证事项见 [应用更新](updates.md)。

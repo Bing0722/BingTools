@@ -1,3 +1,4 @@
+import type { UpdateSnapshot } from './updater'
 import type { Preferences, SettingsPatch } from '../schemas/settings'
 import type { CustomerInput, Endpoint } from '../schemas/simulator'
 import type { SimulatorEvent, SimulatorSnapshot } from './simulator'
@@ -8,6 +9,13 @@ export interface AppApi {
   settings: {
     get(): Promise<Result<SettingsSnapshot>>
     update(patch: SettingsPatch): Promise<Result<SettingsSnapshot>>
+  }
+  updater: {
+    getSnapshot(): Promise<Result<UpdateSnapshot>>
+    check(): Promise<Result<UpdateSnapshot>>
+    download(): Promise<Result<UpdateSnapshot>>
+    install(): Promise<Result<UpdateSnapshot>>
+    onEvent(listener: (snapshot: UpdateSnapshot) => void): () => void
   }
   simulator: {
     getSnapshot(): Promise<Result<SimulatorSnapshot>>

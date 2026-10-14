@@ -6,6 +6,9 @@ import { registerSettings } from './ipc/settings'
 import { SimulatorRepository } from './storage/simulator-repository'
 import { SimulatorController } from './services/simulator-controller'
 import { registerSimulator } from './ipc/simulator'
+import { UpdateController, demoBackend } from './services/update-controller'
+import { registerUpdater } from './ipc/updater'
+declare const __UPDATE_REPOSITORY__: string
 import { updateMenu } from './menu'
 
 app.setName('BingTools')
@@ -91,6 +94,24 @@ void app.whenReady().then(async () => {
   })
   registerSettings(repository, () => window, expectedUrl, updateMenu)
   registerSimulator(simulator, () => window, expectedUrl)
+  const updateRepository = __UPDATE_REPOSITORY__
+  const mode = !updateRepository ? 'demo' : app.isPackaged ? 'github' : 'unavailable'
+  const backend = mode === 'github' ? (await import('./services/github-updater')).githubBackend(updateRepository, () => updater.installFailed()) : demoBackend(app.getVersion())
+  const updater = new UpdateController(backend, { mode, currentVersion: app.getVersion(), repository: updateRepository || undefined }, async () => {
+    clearTimeout(boundsTimer)
+    saveBounds()
+    await shutdown()
+    // 安装器会主动退出应用，此前已经完成停服和写入。
+    closing = true
+    quitting = true
+  }, () => {
+    // 安装器异步失败时恢复正常退出处理；仿真服务保持停止，可手动重启。
+    closing = false
+    quitting = false
+    shutdownPromise = undefined
+    simulator.resume()
+  })
+  registerUpdater(updater, () => window, expectedUrl)
   updateMenu(repository.get())
   createWindow()
   app.on('activate', () => { if (!window) createWindow() })
