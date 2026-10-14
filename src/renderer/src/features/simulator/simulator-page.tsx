@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { useNotifications } from '@/stores/notification-store'
 import { useSimulator } from '@/stores/simulator-store'
-import { customerInputSchema, endpointSchema, methods, type CustomerInput, type Endpoint } from '../../../../shared/schemas/simulator'
+import { customerInputSchema, customerNameKey, endpointSchema, methods, type CustomerInput, type Endpoint } from '../../../../shared/schemas/simulator'
 import { LogPanel } from './log-panel'
 import { ResponseBodyEditor } from './response-body-editor'
 
@@ -22,6 +22,7 @@ export function SimulatorPage() {
   const [listener, setListener] = useState({ host: '', port: '' })
   const [pending, setPending] = useState<Action | null>(null)
   const [customerForm, setCustomerForm] = useState<CustomerInput | null>(null)
+  const [copySource, setCopySource] = useState('')
   const [deletion, setDeletion] = useState<'customer' | 'endpoint' | null>(null)
   const focusReturn = useRef<HTMLElement | null>(null)
   const locked = ['starting','running','stopping'].includes(snapshot.runtime.phase)
@@ -89,6 +90,7 @@ export function SimulatorPage() {
   function openCustomer(edit: boolean) {
     guard(() => {
       focusReturn.current = document.activeElement as HTMLElement
+      setCopySource('')
       setCustomerForm(edit && customer ? { id: customer.id, name: customer.name, host: customer.host, port: customer.port, protocol: 'http' } : { id: crypto.randomUUID(), name: '', host: '127.0.0.1', port: 8080, protocol: 'http' })
     })
   }
@@ -96,7 +98,10 @@ export function SimulatorPage() {
   async function saveCustomer() {
     const parsed = customerInputSchema.safeParse(customerForm)
     if (!parsed.success) { reportError('INVALID_INPUT'); return }
-    if (await run(() => window.app.simulator.saveCustomer(parsed.data), 'customerSaved')) {
+    if (snapshot.config.customers.some((entry) => entry.id !== parsed.data.id && customerNameKey(entry.name) === customerNameKey(parsed.data.name))) {
+      reportError('DUPLICATE_CUSTOMER_NAME'); return
+    }
+    if (await run(() => window.app.simulator.saveCustomer(parsed.data, copySource || undefined), 'customerSaved')) {
       setListener({ host: parsed.data.host, port: String(parsed.data.port) })
       closeCustomer()
     }
@@ -113,8 +118,8 @@ export function SimulatorPage() {
   const fullAddress = customer && draft ? `http://${(listener.host || customer.host).includes(':') ? `[${listener.host || customer.host}]` : listener.host || customer.host}:${listener.port || customer.port}${draft.path}` : ''
   return <div className="simulator-page">
     <div className="simulator-top"><div className="simulator-title"><div><h1>{t('simulator')}</h1><p>{t('manualStart')}</p></div><span className={`runtime-badge phase-${snapshot.runtime.phase}`} role="status"><Circle size={7} fill="currentColor" />{t(snapshot.runtime.phase)}</span></div>
-      <div className="server-controls"><label className="field customer-select"><span>{t('customer')}</span><select aria-label={t('customer')} disabled={locked || busy || !customer} value={customer?.id ?? ''} onChange={(event) => { const id = event.target.value; guard(async () => { await run(() => window.app.simulator.selectCustomer(id)) }) }}><option value="" disabled>—</option>{snapshot.config.customers.map((entry) => <option value={entry.id} key={entry.id}>{entry.name}</option>)}</select></label>
-        <div className="customer-buttons"><Button variant="outline" size="icon" disabled={locked || busy} aria-label={t('addCustomer')} onClick={() => openCustomer(false)}><Plus size={15} /></Button><Button variant="ghost" size="icon" disabled={!customer || locked || busy} aria-label={t('editCustomer')} onClick={() => openCustomer(true)}><Pencil size={14} /></Button><Button variant="ghost" size="icon" disabled={!customer || locked || busy} aria-label={t('deleteCustomer')} onClick={() => guard(() => setDeletion('customer'))}><Trash2 size={14} /></Button></div>
+      <div className="server-controls"><label className="field customer-select"><span>{t('customer')}</span><select aria-label={t('customer')} disabled={locked || busy || !customer} value={customer?.id ?? ''} onChange={(event) => { const id = event.target.value; guard(async () => { await run(() => window.app.simulator.selectCustomer(id)) }) }}>{!snapshot.config.customers.length && <option value="" disabled>—</option>}{snapshot.config.customers.map((entry) => <option value={entry.id} key={entry.id}>{entry.name}</option>)}</select></label>
+        <div className="customer-buttons"><Button variant="outline" size="icon" disabled={locked || busy} aria-label={t('addCustomer')} onClick={() => openCustomer(false)}><Plus size={15} /></Button><Button className="customer-edit-button" title={t('editCustomer')} variant="ghost" size="sm" disabled={!customer || locked || busy} aria-label={t('editCustomer')} onClick={() => openCustomer(true)}><Pencil size={14} /><span>{t('editCustomer')}</span></Button><Button variant="ghost" size="icon" disabled={!customer || locked || busy} aria-label={t('deleteCustomer')} onClick={() => guard(() => setDeletion('customer'))}><Trash2 size={14} /></Button></div>
         <label className="field protocol-field"><span>{t('connection')}</span><input readOnly aria-label={t('connection')} value="WebAPI (HTTP)" /></label>
         <label className="field host-field"><span>{t('host')}</span><input aria-label={t('host')} disabled={!customer || locked || busy} value={listener.host} placeholder="127.0.0.1" onChange={(event) => setListener({ ...listener, host: event.target.value })} /></label>
         <label className="field port-field"><span>{t('port')}</span><input aria-label={t('port')} type="number" min={1} max={65535} disabled={!customer || locked || busy} value={listener.port} placeholder="8080" onChange={(event) => setListener({ ...listener, port: event.target.value })} /></label>
@@ -143,7 +148,14 @@ export function SimulatorPage() {
       <div className="dialog-actions"><Button variant="ghost" disabled={busy} onClick={cancelNavigation}>{t('cancel')}</Button><Button variant="outline" disabled={busy} onClick={() => void continueNavigation(false)}>{t('discard')}</Button><Button disabled={busy} onClick={() => void continueNavigation(true)}>{t('save')}</Button></div>
     </Dialog>
     <Dialog open={!!customerForm} onOpenChange={(open) => { if (!open) closeCustomer() }} title={t(customerForm && snapshot.config.customers.some((entry) => entry.id === customerForm.id) ? 'editCustomer' : 'addCustomer')} description={t('customerHelp')}>
-      {customerForm && <form onSubmit={(event) => { event.preventDefault(); void saveCustomer() }} className="customer-form"><label className="field"><span>{t('customerName')}</span><input autoFocus aria-label={t('customerName')} value={customerForm.name} maxLength={100} onChange={(event) => setCustomerForm({ ...customerForm, name: event.target.value })} disabled={busy} /></label><div className="route-fields"><label className="field"><span>{t('host')}</span><input aria-label={t('host')} value={customerForm.host} onChange={(event) => setCustomerForm({ ...customerForm, host: event.target.value })} disabled={busy} /></label><label className="field"><span>{t('port')}</span><input aria-label={t('port')} type="number" value={customerForm.port || ''} onChange={(event) => setCustomerForm({ ...customerForm, port: Number(event.target.value) })} disabled={busy} /></label></div><div className="dialog-actions"><Button type="button" variant="outline" disabled={busy} onClick={closeCustomer}>{t('cancel')}</Button><Button type="submit" disabled={busy}>{t('save')}</Button></div></form>}
+      {customerForm && <form onSubmit={(event) => { event.preventDefault(); void saveCustomer() }} className="customer-form">
+        {!snapshot.config.customers.some((entry) => entry.id === customerForm.id) && snapshot.config.customers.length > 0 && <div className="copy-customer-fields"><label className="field"><span>{t('copyCustomerFrom')}</span><select aria-label={t('copyCustomerFrom')} value={copySource} disabled={busy} onChange={(event) => {
+          const sourceId = event.target.value
+          const source = snapshot.config.customers.find((entry) => entry.id === sourceId)
+          setCopySource(sourceId)
+          setCustomerForm({ ...customerForm, host: source?.host ?? '127.0.0.1', port: source?.port ?? 8080 })
+        }}><option value="">{t('emptyCustomer')}</option>{snapshot.config.customers.map((entry) => <option key={entry.id} value={entry.id}>{entry.name}</option>)}</select></label><p className="field-hint">{t('copyCustomerHelp')}</p></div>}
+        <label className="field"><span>{t('customerName')}</span><input autoFocus aria-label={t('customerName')} value={customerForm.name} maxLength={100} onChange={(event) => setCustomerForm({ ...customerForm, name: event.target.value })} disabled={busy} /></label><div className="route-fields"><label className="field"><span>{t('host')}</span><input aria-label={t('host')} value={customerForm.host} onChange={(event) => setCustomerForm({ ...customerForm, host: event.target.value })} disabled={busy} /></label><label className="field"><span>{t('port')}</span><input aria-label={t('port')} type="number" value={customerForm.port || ''} onChange={(event) => setCustomerForm({ ...customerForm, port: Number(event.target.value) })} disabled={busy} /></label></div><div className="dialog-actions"><Button type="button" variant="outline" disabled={busy} onClick={closeCustomer}>{t('cancel')}</Button><Button type="submit" disabled={busy}>{t('save')}</Button></div></form>}
     </Dialog>
     <Dialog open={!!deletion} onOpenChange={(open) => { if (!open) setDeletion(null) }} title={t(deletion === 'customer' ? 'deleteCustomer' : 'deleteEndpoint')} description={t(deletion === 'customer' ? 'deleteCustomerHelp' : 'deleteEndpointHelp')}><div className="dialog-actions"><Button variant="outline" disabled={busy} onClick={() => setDeletion(null)}>{t('cancel')}</Button><Button disabled={busy} onClick={() => void remove()}>{t('delete')}</Button></div></Dialog>
   </div>

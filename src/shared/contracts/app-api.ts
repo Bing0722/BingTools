@@ -20,7 +20,7 @@ export interface AppApi {
   }
   simulator: {
     getSnapshot(): Promise<Result<SimulatorSnapshot>>
-    saveCustomer(customer: CustomerInput): Promise<Result<SimulatorSnapshot>>
+    saveCustomer(customer: CustomerInput, sourceCustomerId?: string): Promise<Result<SimulatorSnapshot>>
     deleteCustomer(customerId: string): Promise<Result<SimulatorSnapshot>>
     selectCustomer(customerId: string): Promise<Result<SimulatorSnapshot>>
     saveEndpoint(customerId: string, endpoint: Endpoint): Promise<Result<SimulatorSnapshot>>

@@ -27,10 +27,10 @@
   "customer": "客户",
   "customerName": "客户名称",
   "addCustomer": "新增客户",
-  "editCustomer": "客户设置",
+  "editCustomer": "编辑客户",
   "deleteCustomer": "删除客户",
   "deleteCustomerHelp": "将删除此客户及其所有接口，此操作无法撤销。",
-  "customerHelp": "每个客户独立保存监听地址和接口配置。",
+  "customerHelp": "可修改客户名称、监听 IP 和端口；客户名称不能重复，已有接口会保留。",
   "noCustomers": "先创建一个客户",
   "noCustomersHelp": "配置接口后手动启动服务，让客户端连接这里。",
   "connection": "连接方式",
@@ -199,5 +199,9 @@
   "updateOpenRelease": "GitHub 下载页",
   "beautifyJson": "美化 JSON",
   "jsonValid": "JSON 格式正确",
-  "jsonLocation": "第 {{line}} 行，第 {{column}} 列"
+  "jsonLocation": "第 {{line}} 行，第 {{column}} 列",
+  "copyCustomerFrom": "复制已有客户",
+  "emptyCustomer": "不复制，创建空白客户",
+  "copyCustomerHelp": "复制监听配置及全部接口（含启用状态），可继续修改 IP 和端口；请填写不同的客户名称。",
+  "DUPLICATE_CUSTOMER_NAME": "客户名称已存在，请使用其他名称（忽略首尾空格和英文大小写）。"
 }

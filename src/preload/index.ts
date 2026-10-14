@@ -22,7 +22,7 @@ const api: AppApi = {
   },
   simulator: {
     getSnapshot: () => ipcRenderer.invoke('simulator:snapshot'),
-    saveCustomer: (customer) => command({ type: 'saveCustomer', customer }),
+    saveCustomer: (customer, sourceCustomerId) => command({ type: 'saveCustomer', customer, sourceCustomerId }),
     deleteCustomer: (customerId) => command({ type: 'deleteCustomer', customerId }),
     selectCustomer: (customerId) => command({ type: 'selectCustomer', customerId }),
     saveEndpoint: (customerId, endpoint) => command({ type: 'saveEndpoint', customerId, endpoint }),

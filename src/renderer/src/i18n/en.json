@@ -27,10 +27,10 @@
   "customer": "Customer",
   "customerName": "Customer name",
   "addCustomer": "Add customer",
-  "editCustomer": "Customer settings",
+  "editCustomer": "Edit customer",
   "deleteCustomer": "Delete customer",
   "deleteCustomerHelp": "This permanently deletes the customer and all of its endpoints.",
-  "customerHelp": "Each customer has its own listener and endpoints.",
+  "customerHelp": "Edit the customer name, listener IP and port. Names must be unique; existing endpoints are preserved.",
   "noCustomers": "Create your first customer",
   "noCustomersHelp": "Configure endpoints, then start the server for your clients.",
   "connection": "Connection",
@@ -199,5 +199,9 @@
   "updateOpenRelease": "GitHub downloads",
   "beautifyJson": "Beautify JSON",
   "jsonValid": "Valid JSON",
-  "jsonLocation": "Line {{line}}, column {{column}}"
+  "jsonLocation": "Line {{line}}, column {{column}}",
+  "copyCustomerFrom": "Copy from customer",
+  "emptyCustomer": "Create an empty customer",
+  "copyCustomerHelp": "Copy listener settings and all endpoints, including enabled states. You can edit the IP and port. Enter a different customer name.",
+  "DUPLICATE_CUSTOMER_NAME": "This customer name already exists. Use another name (ignoring surrounding spaces and letter case)."
 }

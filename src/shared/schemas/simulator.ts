@@ -19,6 +19,8 @@ export const endpointSchema = z.object({
     if (new URL(value.path, 'http://localhost').pathname !== value.path) context.addIssue({ code: 'custom', path: ['path'], message: 'INVALID_PATH' })
   } catch { context.addIssue({ code: 'custom', path: ['path'], message: 'INVALID_PATH' }) }
 })
+// 新建与改名统一去除首尾空格、忽略英文大小写；旧文件不因重名而损坏恢复。
+export const customerNameKey = (name: string): string => name.trim().toLowerCase()
 export const customerInputSchema = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(100),
   host: z.union([z.ipv4(), z.ipv6()]), port: z.number().int().min(1).max(65535), protocol: z.literal('http'),
@@ -46,7 +48,7 @@ export const defaultSimulatorConfig: SimulatorConfig = { schemaVersion: 1, selec
 
 // 只接受明确业务命令，不开放通用 IPC、任意网络或文件访问能力。
 export const simulatorCommandSchema = z.discriminatedUnion('type', [
-  z.object({ type: z.literal('saveCustomer'), customer: customerInputSchema }).strict(),
+  z.object({ type: z.literal('saveCustomer'), customer: customerInputSchema, sourceCustomerId: z.string().uuid().optional() }).strict(),
   z.object({ type: z.literal('deleteCustomer'), customerId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('selectCustomer'), customerId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('saveEndpoint'), customerId: z.string().uuid(), endpoint: endpointSchema }).strict(),

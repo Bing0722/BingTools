@@ -124,7 +124,7 @@ describe('real HTTP simulator', () => {
 describe('configuration and lifecycle', () => {
   it('isolates customers, restores configuration and rejects duplicates', async () => {
     const { controller, path } = await repositoryFixture()
-    const a = await customer(); const b = await customer([])
+    const a = await customer(); const b = { ...await customer([]), name: '客户 B' }
     const aInput = { id: a.id, name: a.name, host: a.host, port: a.port, protocol: a.protocol }
     const bInput = { id: b.id, name: b.name, host: b.host, port: b.port, protocol: b.protocol }
     await controller.execute({ type: 'saveCustomer', customer: aInput })
@@ -139,6 +139,37 @@ describe('configuration and lifecycle', () => {
     await controller.execute({ type: 'selectCustomer', customerId: a.id })
     await controller.execute({ type: 'deleteCustomer', customerId: b.id })
     expect(controller.snapshot().config.selectedCustomerId).toBe(a.id)
+  })
+  it('copies customers atomically with independent endpoint IDs and preserves endpoints on rename', async () => {
+    const { controller, repository, path } = await repositoryFixture()
+    const { endpoints, ...source } = await customer([endpoint(), endpoint({ path: '/disabled', enabled: false, format: 'text', body: 'hello' })])
+    await controller.execute({ type: 'saveCustomer', customer: source })
+    for (const entry of endpoints) await controller.execute({ type: 'saveEndpoint', customerId: source.id, endpoint: entry })
+    const copy = { ...source, id: randomUUID(), name: 'Copy' }
+    const before = controller.snapshot().config
+    vi.spyOn(repository, 'update').mockRejectedValueOnce(new Error('disk full'))
+    await expect(controller.execute({ type: 'saveCustomer', customer: copy, sourceCustomerId: source.id })).rejects.toThrow('SAVE_FAILED')
+    expect(controller.snapshot().config).toEqual(before)
+    await expect(controller.execute({ type: 'saveCustomer', customer: copy, sourceCustomerId: randomUUID() })).rejects.toThrow('CUSTOMER_NOT_FOUND')
+    await controller.execute({ type: 'saveCustomer', customer: copy, sourceCustomerId: source.id })
+    const copied = controller.snapshot().config.customers[1]
+    expect(copied.endpoints.map((entry, index) => ({ ...entry, id: endpoints[index].id }))).toEqual(endpoints)
+    expect(copied.endpoints.every((entry) => !endpoints.some((original) => original.id === entry.id))).toBe(true)
+    await expect(controller.execute({ type: 'saveCustomer', customer: { ...source, name: 'copy' } })).rejects.toThrow('DUPLICATE_CUSTOMER_NAME')
+    await expect(controller.execute({ type: 'saveCustomer', customer: { ...copy, id: randomUUID(), name: ' COPY ' } })).rejects.toThrow('DUPLICATE_CUSTOMER_NAME')
+    await expect(controller.execute({ type: 'saveCustomer', customer: copy, sourceCustomerId: source.id })).rejects.toThrow('INVALID_INPUT')
+    await controller.execute({ type: 'saveCustomer', customer: { ...copy, name: 'Renamed' } })
+    expect(controller.snapshot().config.customers[1].endpoints).toEqual(copied.endpoints)
+    await controller.execute({ type: 'saveEndpoint', customerId: copy.id, endpoint: { ...copied.endpoints[0], body: '{"copy":true}' } })
+    expect(controller.snapshot().config.customers[0].endpoints).toEqual(endpoints)
+    const restarted = await new SimulatorRepository(path).load()
+    expect(restarted.customers[1].name).toBe('Renamed')
+    expect(restarted.customers[1].endpoints[0].body).toBe('{"copy":true}')
+    expect(restarted.customers[1].host).toBe(source.host)
+    expect(restarted.customers[1].port).toBe(source.port)
+    expect(controller.snapshot().runtime.phase).toBe('stopped')
+    await controller.execute({ type: 'start', customerId: copy.id })
+    await expect(controller.execute({ type: 'saveCustomer', customer: { ...copy, id: randomUUID(), name: 'Third' }, sourceCustomerId: source.id })).rejects.toThrow('STOP_FIRST')
   })
   it('persists before hot update, protects listeners and cleans subscriptions', async () => {
     const { controller, repository } = await repositoryFixture()

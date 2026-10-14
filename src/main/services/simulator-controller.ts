@@ -1,5 +1,6 @@
+import { randomUUID } from 'node:crypto'
 import type { SimulatorRepository } from '../storage/simulator-repository'
-import { simulatorCommandSchema, simulatorConfigSchema, type SimulatorCommand } from '../../shared/schemas/simulator'
+import { simulatorCommandSchema, simulatorConfigSchema, customerNameKey, type SimulatorCommand } from '../../shared/schemas/simulator'
 import type { SimulatorEvent, SimulatorSnapshot } from '../../shared/contracts/simulator'
 import { HttpSimulator } from './http-simulator'
 import { LogBuffer } from './log-buffer'
@@ -54,7 +55,13 @@ export class SimulatorController {
     if (command.type === 'saveCustomer') {
       if (busy) throw new Error('STOP_FIRST')
       const index = config.customers.findIndex((entry) => entry.id === command.customer.id)
-      if (index < 0) config.customers.push({ ...command.customer, endpoints: [] })
+      if (config.customers.some((entry) => entry.id !== command.customer.id && customerNameKey(entry.name) === customerNameKey(command.customer.name))) throw new Error('DUPLICATE_CUSTOMER_NAME')
+      // 复制只允许创建新客户，在同一次原子保存中写入监听配置和全套接口。
+      // 接口使用新 ID，后续修改不会影响来源客户；运行状态和日志不复制。
+      if (command.sourceCustomerId && index >= 0) throw new Error('INVALID_INPUT')
+      const source = command.sourceCustomerId ? config.customers.find((entry) => entry.id === command.sourceCustomerId) : undefined
+      if (command.sourceCustomerId && !source) throw new Error('CUSTOMER_NOT_FOUND')
+      if (index < 0) config.customers.push({ ...command.customer, endpoints: source?.endpoints.map((entry) => ({ ...entry, id: randomUUID() })) ?? [] })
       else config.customers[index] = { ...command.customer, endpoints: config.customers[index].endpoints }
       config.selectedCustomerId = command.customer.id
     } else {
