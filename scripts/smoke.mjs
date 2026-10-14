@@ -44,6 +44,27 @@ async function goSettings(page) {
 try {
   await mkdir('test-results', { recursive: true })
   let page = await launch()
+  // 标题栏不随侧栏移动；动画必须经历中间宽度，收起后仍可键盘展开。
+  const headerBefore = await page.locator('.page-header').boundingBox()
+  await page.getByRole('button', { name: '切换侧栏', exact: true }).click()
+  await page.waitForFunction(() => {
+    const width = document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width
+    return width > 56 && width < 240
+  })
+  await page.waitForFunction(() => Math.abs(document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width - 56) < 1)
+  assert.deepEqual(await page.locator('.page-header').boundingBox(), headerBefore)
+  if (process.platform === 'darwin') {
+    assert.ok((await page.getByRole('button', { name: '切换侧栏', exact: true }).boundingBox()).x >= 96)
+  } else if (process.platform === 'win32') {
+    assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false)
+  }
+  await screenshot(page, 'shell-collapsed')
+  await page.keyboard.press(process.platform === 'darwin' ? 'Meta+b' : 'Control+b')
+  await page.waitForFunction(() => Math.abs(document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width - 240) < 1)
+  await page.emulateMedia({ reducedMotion: 'reduce' })
+  assert.equal(await page.locator('.app-shell').evaluate((element) => getComputedStyle(element).transitionDuration), '0s')
+  await page.emulateMedia({ reducedMotion: 'no-preference' })
+  await screenshot(page, 'shell-expanded')
   await page.getByRole('button', { name: '新增客户', exact: true }).first().click()
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('客户名称', { exact: true }).fill('集成验证客户')

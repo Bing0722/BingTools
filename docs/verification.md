@@ -88,3 +88,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 下载并核对两份公开元数据：版本 0.3.0、资产名、SHA-512 字段及 releaseNotes 均存在。
 - 实际启动本机打包应用，使用独立临时目录执行 window.app.updater.check()；真实 GitHub 更新请求返回 mode=github、currentVersion=0.3.0、phase=current，确认更新源可用。未执行安装。
 - 当前包未签名；macOS 明确禁用原位安装并提供 GitHub 手动下载。Windows 安装程序已构建并公开，但未在交互式 Windows 桌面验收安装／升级；后续跨版本升级仍需真实双版本测试。
+
+## 2026-10-14：统一标题栏与侧栏动画
+
+- 顶部改为独立的 56px 跨栏区域；macOS 三色按钮固定位置并预留 96px，侧栏折叠不影响标题栏。Windows 配置原生窗口控制覆盖层和主题颜色同步，菜单默认隐藏，Alt 仍可访问。
+- 侧栏增加 240ms 宽度过渡、160ms 文字淡入淡出，固定图标位置；减少动态效果时禁用动画。修复折叠文字造成的横向滚动条。
+- 类型检查、Lint、生产构建、30 项测试和 macOS Electron 桌面流程通过。桌面新增验证动画中间宽度、最终宽度、标题栏位置不变、Cmd+B 展开与减少动态效果；原有 HTTP、主题、语言、窄窗、关闭重开流程通过。
+- 检查了 shell-expanded / shell-collapsed 与深浅主题页面截图。Playwright 页面截图不包含原生三色按钮；原生按钮视觉与拖动、全屏行为未人工验收。Windows 原生控制、Alt 菜单和贴靠仍待 Windows 实机验证。本轮未重新发布安装包。
+- 构建仍有已知 Zod 注释与包体积提示，无新增构建错误。

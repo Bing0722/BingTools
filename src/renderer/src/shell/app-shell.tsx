@@ -43,10 +43,11 @@ export function AppShell() {
     return () => { if (element) scrollPositions.set(pathname, element.scrollTop) }
   }, [pathname])
 
-  return <div className={`app-shell ${window.app.platform === 'darwin' ? 'platform-mac' : ''}`} style={{ '--sidebar-width': `${collapsed ? 56 : preferences.sidebarWidth}px` } as React.CSSProperties}>
+  return <div className={`app-shell ${window.app.platform === 'darwin' ? 'platform-mac' : window.app.platform === 'win32' ? 'platform-win' : ''}`} style={{ '--sidebar-width': `${collapsed ? 56 : preferences.sidebarWidth}px` } as React.CSSProperties}>
     <button className="skip-link" onClick={() => scroll.current?.focus()}>{t('skipContent')}</button>
+    <PageHeader title={title} collapsed={collapsed} toggle={toggle} />
     <AppSidebar collapsed={collapsed} onNavigate={() => setOverlay(false)} />
-    <section className="main-panel"><PageHeader title={title} collapsed={collapsed} toggle={toggle} />
+    <section className="main-panel">
       {(error || warning) && <div className="notice" role={error ? 'alert' : 'status'}><span>{t(error || warning || '')}</span>{error && <Button variant="ghost" size="sm" onClick={() => void load()}>{t('retry')}</Button>}</div>}
       <main id="main-content" ref={scroll} className={`page-scroll ${pathname === '/simulator' ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
     </section>

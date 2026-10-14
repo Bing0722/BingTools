@@ -38,6 +38,15 @@ function saveBounds(): void {
   })
 }
 
+// Windows 原生窗口按钮与应用标题栏共用主题；跟随系统时也同步更新。
+function overlayStyle() {
+  return { height: 56, color: nativeTheme.shouldUseDarkColors ? '#18181B' : '#FFFFFF',
+    symbolColor: nativeTheme.shouldUseDarkColors ? '#F4F4F5' : '#202024' }
+}
+nativeTheme.on('updated', () => {
+  if (process.platform === 'win32' && window && !window.isDestroyed()) window.setTitleBarOverlay(overlayStyle())
+})
+
 function createWindow(): void {
   closing = false
   shutdownPromise = undefined
@@ -55,7 +64,13 @@ function createWindow(): void {
     minWidth: Math.min(800, workArea.width), minHeight: Math.min(560, workArea.height),
     show: false,
     title: 'BingTools',
-    ...(process.platform === 'darwin' ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 18 } } : {}),
+    // 顶部统一预留 56px；保留原生按钮及系统最大化、贴靠行为。
+    ...(process.platform === 'darwin'
+      ? { titleBarStyle: 'hiddenInset' as const, trafficLightPosition: { x: 16, y: 21 } }
+      : process.platform === 'win32'
+        ? { titleBarStyle: 'hidden' as const, titleBarOverlay: overlayStyle() }
+        : {}),
+    autoHideMenuBar: true,
     backgroundColor: nativeTheme.shouldUseDarkColors ? '#18181B' : '#FFFFFF',
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
