@@ -139,3 +139,4 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm install --frozen-lockfile`、发布说明校验、Lint、37 项测试、生产构建和 macOS Electron 桌面流程通过。构建包含 TypeScript 检查；桌面流程覆盖更新页版本、HTTP 热更新、排序、弹窗、日志、语言、主题和窗口生命周期。
 - 首次桌面测试因验证脚本使用 JSON 命名导入而无法启动；改为默认导入后完整复验通过。构建仍有既有 Zod 注释和 bundle 大小提示。
 - Windows 实机安装及从 0.3.0 跨版本升级尚未验收；macOS 包仍未签名、公证，只支持手动下载。GitHub Actions 构建和发布结果需在标签推送后核对。
+- 首次 0.3.1 [主分支构建](https://github.com/Bing0722/BingTools/actions/runs/38682666543) 的 macOS HTTP 测试在超限正文上传时遇到客户端 `ECONNRESET`：服务已提前返回 413，而客户端仍在写入。测试改为只声明超限 Content-Length 即读取 413，保留另一项分块超限测试；修正后本地 37 项测试和 Lint 通过，待重新执行双平台构建。

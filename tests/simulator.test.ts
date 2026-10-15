@@ -88,7 +88,13 @@ describe('real HTTP simulator', () => {
     expect(Buffer.byteLength(log.requestPreview!)).toBeLessThanOrEqual(8192)
     expect(Buffer.byteLength(log.responsePreview!)).toBeLessThanOrEqual(8192)
     expect(log.requestTruncated && log.responseTruncated).toBe(true)
-    expect((await fetch(url, { method: 'POST', body: 'x'.repeat(BODY_LIMIT + 1) })).status).toBe(413)
+    // 声明的长度已超限时，服务会在客户端发送正文前返回 413；避免客户端仍写入大正文时发生连接重置竞态。
+    const declaredStatus = await new Promise<number>((resolve, reject) => {
+      const outgoing = request(url, { method: 'POST', headers: { 'Content-Length': BODY_LIMIT + 1 } }, (incoming) => { incoming.resume(); resolve(incoming.statusCode!) })
+      outgoing.on('error', reject)
+      outgoing.end()
+    })
+    expect(declaredStatus).toBe(413)
     const status = await new Promise<number>((resolve, reject) => {
       const outgoing = request(url, { method: 'POST' }, (incoming) => { incoming.resume(); resolve(incoming.statusCode!) })
       outgoing.on('error', reject)
