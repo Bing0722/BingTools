@@ -79,7 +79,7 @@ macOS Apple Silicon 的本机产物位于 `release/mac-arm64/BingTools.app`。�
 
 设置页连接 [GitHub Releases](https://github.com/Bing0722/BingTools/releases)，显示统一版本号及更新说明。Windows 提供检查、下载和重启安装流程；macOS 暂未签名，提供 GitHub 下载页手动更新。
 
-推送 main 自动测试和打包；推送与 package.json 一致的版本标签（如 `v0.3.1`），两个平台成功后自动发布安装包、更新元数据和更新说明。见 [发布指南](./docs/updates.md) 与 [更新记录](./CHANGELOG.md)。
+推送 main 自动测试和打包；推送与 package.json 一致的版本标签（如 `v0.4.0`），两个平台成功后自动发布安装包、更新元数据和更新说明。见 [发布指南](./docs/updates.md) 与 [更新记录](./CHANGELOG.md)。
 
 JSON 响应支持“美化 JSON”（两空格缩进）和输入时格式校验；错误内容保留原文，保存前再次校验。美化后需点击保存接口才会生效。
 
