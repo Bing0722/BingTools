@@ -145,4 +145,5 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 
 - 修复后的 [main 构建](https://github.com/Bing0722/BingTools/actions/runs/38682955569) 和 [v0.3.1 发布构建](https://github.com/Bing0722/BingTools/actions/runs/38683218980) 均成功；Windows 2022 x64 与 macOS 14 ARM64 通过在线安装、类型检查、Lint、37 项测试、版本说明校验和原生打包。
 - [v0.3.1 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.3.1) 已发布，发布正文与 `docs/releases/0.3.1.md` 一致；包含 Windows NSIS EXE、macOS ARM64 DMG/ZIP、对应 blockmap、`latest.yml` 和 `latest-mac.yml`，共 8 个资产。
+- 公开下载并核对 `latest.yml` 与 `latest-mac.yml`：均标记版本 0.3.1，包含对应资产名、SHA-512 和本次更新说明。
 - 尚未在 Windows 实机执行 0.3.0 → 0.3.1 安装升级；macOS 仍使用手动下载。GitHub Actions 的旧版 Action 运行时弃用提示不影响此次成功构建。
