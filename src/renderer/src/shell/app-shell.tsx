@@ -18,7 +18,7 @@ export function AppShell() {
   const { preferences, update, error, warning, load } = useSettings()
   const scroll = useRef<HTMLElement>(null)
   const collapsed = narrow || preferences.sidebarCollapsed
-  const title = t(pathname === '/settings' ? 'settings' : 'simulator')
+  const title = t(pathname === '/settings' ? 'settings' : pathname === '/motion' ? 'motion' : 'simulator')
   function toggle() {
     if (narrow) setOverlay((open) => !open)
     else void update({ sidebarCollapsed: !preferences.sidebarCollapsed })
@@ -49,7 +49,7 @@ export function AppShell() {
     <AppSidebar collapsed={collapsed} onNavigate={() => setOverlay(false)} />
     <section className="main-panel">
       {(error || warning) && <div className="notice" role={error ? 'alert' : 'status'}><span>{t(error || warning || '')}</span>{error && <Button variant="ghost" size="sm" onClick={() => void load()}>{t('retry')}</Button>}</div>}
-      <main key={pathname} id="main-content" ref={scroll} className={`page-scroll ${pathname === '/simulator' ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
+      <main key={pathname} id="main-content" ref={scroll} className={`page-scroll ${['/simulator', '/motion'].includes(pathname) ? 'simulator-scroll' : ''}`} tabIndex={-1} aria-label={title}><Outlet /></main>
     </section>
     <Dialog open={narrow && overlay} onOpenChange={setOverlay} title={t('navigation')} description={t('choosePage')}><div className="mobile-nav"><AppSidebar collapsed={false} onNavigate={() => setOverlay(false)} /></div></Dialog>
   </div>

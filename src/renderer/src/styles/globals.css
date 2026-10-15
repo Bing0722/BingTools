@@ -312,3 +312,19 @@ textarea { resize:vertical; }
 /* 顶部通知避开标题栏和系统窗口按钮，四角均保留安全边距。 */
 .toast-host[data-position^="top"] { top:72px; bottom:auto; flex-direction:column; }
 .toast-host[data-position$="left"] { left:20px; right:auto; }
+
+.motion-controls { display:flex; align-items:end; flex-wrap:wrap; gap:12px; }
+.motion-controls > .field { min-width:130px; flex:1; }
+.motion-controls small { color:var(--muted-foreground); font-size:11px; }
+.motion-dialog { width:min(760px,calc(100vw - 32px)); max-height:90vh; display:flex; flex-direction:column; }
+.motion-dialog > .dialog-actions { flex-shrink:0; }
+.motion-form { min-height:0; overflow:auto; display:flex; flex-direction:column; gap:16px; padding:4px; }
+.motion-form-row { display:flex; flex-wrap:wrap; gap:12px; align-items:end; }
+.motion-form-row > .field { flex:1; min-width:110px; }
+.motion-form textarea { min-height:100px; resize:vertical; font-family:ui-monospace,monospace; }
+.motion-page .endpoint-card-open code { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.motion-log-list { overflow-anchor:none; }
+.motion-log-entry { grid-template-columns:110px 48px minmax(0,1fr) 50px; }
+.motion-page .log-controls > input { width:130px; }
+
+.motion-form > label:not(.field) { display:flex; align-items:center; gap:8px; }

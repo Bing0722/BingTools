@@ -1,3 +1,4 @@
+import { MotionPage } from '@/features/motion/motion-page'
 import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from '@/shell/app-shell'
 import { SimulatorPage } from '@/features/simulator/simulator-page'
@@ -6,6 +7,7 @@ import { SettingsPage } from '@/features/settings/settings-page'
 const router = createHashRouter([{ element: <AppShell />, children: [
   { index: true, element: <Navigate to="/simulator" replace /> },
   { path: 'simulator', element: <SimulatorPage /> },
+  { path: 'motion', element: <MotionPage /> },
   { path: 'settings', element: <SettingsPage /> },
   { path: '*', element: <Navigate to="/simulator" replace /> },
 ] }])

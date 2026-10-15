@@ -1,3 +1,4 @@
+import type { MotionEvent } from '../shared/schemas/motion'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { UpdateSnapshot } from '../shared/contracts/updater'
 import type { AppApi } from '../shared/contracts/app-api'
@@ -18,6 +19,16 @@ const api: AppApi = {
       const handler = (_event: Electron.IpcRendererEvent, snapshot: UpdateSnapshot) => listener(snapshot)
       ipcRenderer.on('updater:event', handler)
       return () => ipcRenderer.removeListener('updater:event', handler)
+    },
+  },
+  motion: {
+    getSnapshot: () => ipcRenderer.invoke('motion:snapshot'),
+    listPorts: () => ipcRenderer.invoke('motion:ports'),
+    command: (value) => ipcRenderer.invoke('motion:command', value),
+    onEvent: (listener) => {
+      const handler = (_event: Electron.IpcRendererEvent, payload: MotionEvent) => listener(payload)
+      ipcRenderer.on('motion:event', handler)
+      return () => ipcRenderer.removeListener('motion:event', handler)
     },
   },
   simulator: {

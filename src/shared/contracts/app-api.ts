@@ -1,3 +1,4 @@
+import type { MotionCommand, MotionEvent, MotionSnapshot, MotionState, SerialPortInfo } from '../schemas/motion'
 import type { UpdateSnapshot } from './updater'
 import type { Preferences, SettingsPatch } from '../schemas/settings'
 import type { CustomerInput, Endpoint } from '../schemas/simulator'
@@ -17,6 +18,12 @@ export interface AppApi {
     download(): Promise<Result<UpdateSnapshot>>
     install(): Promise<Result<UpdateSnapshot>>
     onEvent(listener: (snapshot: UpdateSnapshot) => void): () => void
+  }
+  motion: {
+    getSnapshot(): Promise<Result<MotionSnapshot>>
+    listPorts(): Promise<Result<SerialPortInfo[]>>
+    command(command: MotionCommand): Promise<Result<MotionState>>
+    onEvent(listener: (event: MotionEvent) => void): () => void
   }
   simulator: {
     getSnapshot(): Promise<Result<SimulatorSnapshot>>

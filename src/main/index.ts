@@ -1,3 +1,5 @@
+import { MotionController, MotionRepository } from './services/motion-controller'
+import { registerMotion } from './ipc/motion'
 import { app, BrowserWindow, nativeTheme, screen, session } from 'electron'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
@@ -22,10 +24,12 @@ let boundsTimer: ReturnType<typeof setTimeout> | undefined
 const repository = new SettingsRepository(join(app.getPath('userData'), 'settings.json'))
 const simulatorRepository = new SimulatorRepository(join(app.getPath('userData'), 'simulator.json'))
 const simulator = new SimulatorController(simulatorRepository)
+const motionRepository = new MotionRepository(join(app.getPath('userData'), 'motion.json'))
+const motion = new MotionController(motionRepository)
 let shutdownPromise: Promise<void> | undefined
 function shutdown(): Promise<void> {
   // 窗口关闭与应用退出可能重入，复用同一个释放过程。
-  return shutdownPromise ??= Promise.all([repository.flush(), simulator.shutdown()]).then(() => undefined)
+  return shutdownPromise ??= Promise.all([repository.flush(), simulator.shutdown(), motion.shutdown()]).then(() => undefined)
 }
 const devUrl = !app.isPackaged ? process.env.ELECTRON_RENDERER_URL : undefined
 const rendererFile = join(__dirname, '../renderer/index.html')
@@ -51,6 +55,7 @@ function createWindow(): void {
   closing = false
   shutdownPromise = undefined
   simulator.resume()
+  motion.resume()
   const settings = repository.get()
   nativeTheme.themeSource = settings.theme
   const workArea = screen.getPrimaryDisplay().workArea
@@ -99,7 +104,7 @@ function queueBounds(): void {
 }
 
 void app.whenReady().then(async () => {
-  await Promise.all([repository.load(), simulatorRepository.load()])
+  await Promise.all([repository.load(), simulatorRepository.load(), motionRepository.load()])
   session.defaultSession.setPermissionRequestHandler((_contents, _permission, callback) => callback(false))
   session.defaultSession.setPermissionCheckHandler(() => false)
   session.defaultSession.webRequest.onHeadersReceived((details, callback) => {
@@ -110,6 +115,7 @@ void app.whenReady().then(async () => {
   })
   registerSettings(repository, () => window, expectedUrl, updateMenu)
   registerSimulator(simulator, () => window, expectedUrl)
+  registerMotion(motion, () => window, expectedUrl)
   const updateRepository = __UPDATE_REPOSITORY__
   const mode = !updateRepository ? 'demo' : app.isPackaged ? 'github' : 'unavailable'
   const backend = mode === 'github' ? (await import('./services/github-updater')).githubBackend(updateRepository, () => updater.installFailed()) : demoBackend(app.getVersion())
@@ -126,6 +132,7 @@ void app.whenReady().then(async () => {
     quitting = false
     shutdownPromise = undefined
     simulator.resume()
+    motion.resume()
   })
   registerUpdater(updater, () => window, expectedUrl)
   updateMenu(repository.get())

@@ -1,3 +1,4 @@
+import { connectMotion } from '@/stores/motion-store'
 import { useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useSettings } from '@/stores/settings-store'
@@ -12,6 +13,7 @@ export function Providers({ children }: { children: ReactNode }) {
   const systemDark = useMedia('(prefers-color-scheme: dark)')
   useEffect(() => { void load() }, [load])
   useEffect(() => connectSimulator(), [])
+  useEffect(() => connectMotion(), [])
   useEffect(() => {
     document.documentElement.classList.toggle('dark', preferences.theme === 'dark' || (preferences.theme === 'system' && systemDark))
     document.documentElement.style.colorScheme = preferences.theme === 'system' ? (systemDark ? 'dark' : 'light') : preferences.theme

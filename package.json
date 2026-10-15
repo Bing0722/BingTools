@@ -1,6 +1,6 @@
 {
   "name": "bingtools",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "A calm desktop workspace for everyday tools",
   "private": true,
   "main": "./out/main/index.js",
@@ -21,6 +21,7 @@
     "package": "pnpm build && electron-builder --dir",
     "package:mac": "pnpm build && electron-builder --mac zip",
     "test:desktop": "node scripts/smoke.mjs",
+    "test:motion": "node scripts/motion-smoke.mjs",
     "package:release": "pnpm build && electron-builder --config electron-builder.release.cjs --publish never"
   },
   "dependencies": {
@@ -37,6 +38,7 @@
     "react-dom": "19.2.8",
     "react-i18next": "17.0.13",
     "react-router-dom": "7.18.3",
+    "serialport": "13.0.0",
     "tailwind-merge": "3.6.0",
     "zod": "4.6.5",
     "zustand": "5.0.15"
