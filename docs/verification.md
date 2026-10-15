@@ -138,5 +138,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 版本由 0.3.0 升至 0.3.1，新增中英文发布说明并汇总标题栏、JSON 编辑、交互反馈、客户复制和接口卡片改动；桌面验证脚本从 package.json 读取版本。
 - `pnpm install --frozen-lockfile`、发布说明校验、Lint、37 项测试、生产构建和 macOS Electron 桌面流程通过。构建包含 TypeScript 检查；桌面流程覆盖更新页版本、HTTP 热更新、排序、弹窗、日志、语言、主题和窗口生命周期。
 - 首次桌面测试因验证脚本使用 JSON 命名导入而无法启动；改为默认导入后完整复验通过。构建仍有既有 Zod 注释和 bundle 大小提示。
-- Windows 实机安装及从 0.3.0 跨版本升级尚未验收；macOS 包仍未签名、公证，只支持手动下载。GitHub Actions 构建和发布结果需在标签推送后核对。
-- 首次 0.3.1 [主分支构建](https://github.com/Bing0722/BingTools/actions/runs/38682666543) 的 macOS HTTP 测试在超限正文上传时遇到客户端 `ECONNRESET`：服务已提前返回 413，而客户端仍在写入。测试改为只声明超限 Content-Length 即读取 413，保留另一项分块超限测试；修正后本地 37 项测试和 Lint 通过，待重新执行双平台构建。
+- Windows 实机安装及从 0.3.0 跨版本升级尚未验收；macOS 包仍未签名、公证，只支持手动下载。GitHub Actions 结果见下方最终记录。
+- 首次 0.3.1 [主分支构建](https://github.com/Bing0722/BingTools/actions/runs/38682666543) 的 macOS HTTP 测试在超限正文上传时遇到客户端 `ECONNRESET`：服务已提前返回 413，而客户端仍在写入。测试改为只声明超限 Content-Length 即读取 413，保留另一项分块超限测试；修正后本地 37 项测试和 Lint 通过。
+
+### 0.3.1 远端最终结果
+
+- 修复后的 [main 构建](https://github.com/Bing0722/BingTools/actions/runs/38682955569) 和 [v0.3.1 发布构建](https://github.com/Bing0722/BingTools/actions/runs/38683218980) 均成功；Windows 2022 x64 与 macOS 14 ARM64 通过在线安装、类型检查、Lint、37 项测试、版本说明校验和原生打包。
+- [v0.3.1 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.3.1) 已发布，发布正文与 `docs/releases/0.3.1.md` 一致；包含 Windows NSIS EXE、macOS ARM64 DMG/ZIP、对应 blockmap、`latest.yml` 和 `latest-mac.yml`，共 8 个资产。
+- 尚未在 Windows 实机执行 0.3.0 → 0.3.1 安装升级；macOS 仍使用手动下载。GitHub Actions 的旧版 Action 运行时弃用提示不影响此次成功构建。
