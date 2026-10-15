@@ -176,3 +176,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 
 - [main 构建](https://github.com/Bing0722/BingTools/actions/runs/38712492764) 成功。Windows 2022 x64 与 macOS 14 ARM64 均完成在线依赖安装、类型检查、Lint、45 项测试、版本说明校验和原生打包。
 - Actions 已上传 `BingTools-win-x64` 与 `BingTools-mac-arm64` 产物；没有推送 `v0.4.0` 标签，也没有创建正式 Release。构建成功不等于串口硬件或 Windows COM 实机验收。
+
+## 2026-10-15：0.4.1 侧栏说明精简
+
+- 移除侧栏 HTTP MOCK 和本地工作空间说明及专用样式，保留弹性留白、三个导航入口和底部设置。版本升至 0.4.1，更新说明与文档同步。
+- Lint、类型检查、生产构建、版本说明检查与 diff 检查通过。macOS Electron 隔离目录实测三个入口、底部设置位置、侧栏折叠展开正常，检查 sidebar-clean 截图。
+- 纯界面精简未新增单元测试；Windows 实机与本轮打包未执行。保留既有构建提示，未推送或发布。
