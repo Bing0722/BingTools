@@ -203,5 +203,11 @@
   "copyCustomerFrom": "Copy from customer",
   "emptyCustomer": "Create an empty customer",
   "copyCustomerHelp": "Copy listener settings and all endpoints, including enabled states. You can edit the IP and port. Enter a different customer name.",
-  "DUPLICATE_CUSTOMER_NAME": "This customer name already exists. Use another name (ignoring surrounding spaces and letter case)."
+  "DUPLICATE_CUSTOMER_NAME": "This customer name already exists. Use another name (ignoring surrounding spaces and letter case).",
+  "endpointCardsHelp": "Drag a handle to reorder, or focus it and use arrow keys.",
+  "endpointDialogHelp": "Edit the endpoint and save to apply. Unsaved changes are protected when closing.",
+  "moveEndpoint": "Move endpoint {{name}}",
+  "editEndpointNamed": "Edit endpoint {{name}}",
+  "endpointOrderSaved": "Endpoint order saved",
+  "endpointDisabled": "Disabled"
 }

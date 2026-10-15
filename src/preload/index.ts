@@ -26,6 +26,7 @@ const api: AppApi = {
     deleteCustomer: (customerId) => command({ type: 'deleteCustomer', customerId }),
     selectCustomer: (customerId) => command({ type: 'selectCustomer', customerId }),
     saveEndpoint: (customerId, endpoint) => command({ type: 'saveEndpoint', customerId, endpoint }),
+    reorderEndpoints: (customerId, endpointIds) => command({ type: 'reorderEndpoints', customerId, endpointIds }),
     deleteEndpoint: (customerId, endpointId) => command({ type: 'deleteEndpoint', customerId, endpointId }),
     setEndpointEnabled: (customerId, endpointId, enabled) => command({ type: 'setEndpointEnabled', customerId, endpointId, enabled }),
     start: (customerId) => command({ type: 'start', customerId }), stop: () => command({ type: 'stop' }),

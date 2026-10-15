@@ -203,5 +203,11 @@
   "copyCustomerFrom": "复制已有客户",
   "emptyCustomer": "不复制，创建空白客户",
   "copyCustomerHelp": "复制监听配置及全部接口（含启用状态），可继续修改 IP 和端口；请填写不同的客户名称。",
-  "DUPLICATE_CUSTOMER_NAME": "客户名称已存在，请使用其他名称（忽略首尾空格和英文大小写）。"
+  "DUPLICATE_CUSTOMER_NAME": "客户名称已存在，请使用其他名称（忽略首尾空格和英文大小写）。",
+  "endpointCardsHelp": "拖动右上角手柄排序，或聚焦手柄后按方向键移动。",
+  "endpointDialogHelp": "修改接口配置，保存后生效。关闭未保存内容时会提示。",
+  "moveEndpoint": "移动接口 {{name}}",
+  "editEndpointNamed": "编辑接口 {{name}}",
+  "endpointOrderSaved": "接口顺序已保存",
+  "endpointDisabled": "已关闭"
 }

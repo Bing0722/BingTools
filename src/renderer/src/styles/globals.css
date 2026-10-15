@@ -144,25 +144,9 @@ textarea { resize:vertical; }
 .server-action { margin-left:auto; }
 .listener-hint { font-size:10px; color:var(--muted-foreground); margin-top:9px; }
 .simulator-workspace { display:flex; flex:1; min-height:170px; min-width:0; overflow:hidden; }
-.endpoint-list { width:230px; min-width:180px; flex-shrink:0; display:flex; flex-direction:column; background:var(--background); border-right:1px solid var(--border); }
-.endpoint-list-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; border-bottom:1px solid var(--border); }
-.endpoint-list-header h2 { font-size:12px; }
-.endpoint-items { flex:1; min-height:0; overflow:auto; padding:7px; }
-.endpoint-item { display:flex; align-items:center; border:1px solid transparent; border-radius:7px; padding-right:7px; margin-bottom:4px; }
-.endpoint-item:hover { background:var(--sidebar); }
-.endpoint-item.selected { background:var(--sidebar); border-color:var(--border); }
-.endpoint-select { background:none; border:0; padding:11px 9px; text-align:left; flex:1; min-width:0; }
-.endpoint-name { display:block; font-size:12px; font-weight:500; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-bottom:5px; }
-.endpoint-select>span:last-child { display:flex; align-items:center; gap:6px; }
-.endpoint-select code { font-size:10px; color:var(--muted-foreground); white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
 .method { display:inline-block; font:600 9px/18px ui-monospace,monospace; color:var(--tone-blue-fg); background:var(--tone-blue-bg); padding:0 4px; border-radius:3px; }
 .method-post,.method-patch { color:var(--tone-amber-fg); background:var(--tone-amber-bg); }
 .method-delete { color:var(--danger); background:var(--sidebar); }
-.endpoint-list-footer { padding:8px 14px; border-top:1px solid var(--border); font-size:10px; color:var(--muted-foreground); }
-.endpoint-editor { display:flex; flex-direction:column; min-width:0; min-height:0; flex:1; }
-.editor-heading { display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border); padding:10px 20px; }
-.editor-heading h2 { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:13px; }
-.editor-heading>.button { margin-left:auto; }
 .editor-fields { min-height:0; overflow:auto; padding:18px 20px; display:flex; flex-direction:column; gap:12px; flex:1; }
 .route-fields { display:grid; grid-template-columns:110px minmax(0,1fr); gap:12px; }
 .address-preview { font:11px/1.6 ui-monospace,monospace; color:var(--muted-foreground); background:var(--sidebar); border:1px solid var(--border); border-radius:5px; padding:7px 9px; overflow-wrap:anywhere; }
@@ -239,12 +223,6 @@ textarea { resize:vertical; }
 @media(max-width:1100px) { .protocol-field { width:140px; } .log-limit { display:none; } .log-heading { margin-right:auto; } .simulator-top { padding:16px; } .server-controls { gap:8px; } }
 @media(max-width:959px) {
   .simulator-workspace { flex-direction:column; }
-  .endpoint-list { width:100%; flex-basis:125px; min-height:95px; border-right:0; border-bottom:1px solid var(--border); }
-  .endpoint-list-header { padding:4px 12px; }
-  .endpoint-list-footer { display:none; }
-  .endpoint-items { display:flex; overflow:auto; gap:5px; }
-  .endpoint-item { min-width:195px; margin:0; }
-  .endpoint-editor { min-height:0; }
   .simulator-workspace { min-height:0; }
   .server-controls { gap:6px; }
   .customer-select { min-width:110px; }
@@ -258,7 +236,7 @@ textarea { resize:vertical; }
   .editor-fields { padding:12px 16px; }
   .page-container { padding:24px; }
 }
-@media(max-height:650px) { .simulator-title p { display:none; } .simulator-title { margin-bottom:8px; } .simulator-top { padding:10px 16px; } .log-panel { height:140px; min-height:90px; } .endpoint-list { flex-basis:96px; } }
+@media(max-height:650px) { .simulator-title p { display:none; } .simulator-title { margin-bottom:8px; } .simulator-top { padding:10px 16px; } .log-panel { height:140px; min-height:90px; } }
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 
 /* 更新页复用设置页与语义色；演示模式始终明确标识。 */
@@ -289,7 +267,7 @@ textarea { resize:vertical; }
 .dialog-content[data-state="open"] { animation:dialog-in 200ms var(--motion-ease); }
 .dialog-content[data-state="closed"] { animation:dialog-out var(--motion-fast) ease-in; }
 .toast { animation:content-enter 200ms var(--motion-ease); }
-.button,.nav-item,.endpoint-item,.theme-choice,.switch { transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),box-shadow var(--motion-fast); }
+.button,.nav-item,.theme-choice,.switch { transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),box-shadow var(--motion-fast); }
 .switch>span { transition:transform 180ms var(--motion-ease); }
 .switch[aria-busy="true"] { cursor:progress; }
 .log-panel { overflow:hidden; transition:height var(--motion-panel) var(--motion-ease),min-height var(--motion-panel) var(--motion-ease); }
@@ -302,3 +280,31 @@ textarea { resize:vertical; }
 .copy-customer-fields { display:flex; flex-direction:column; gap:8px; }
 
 @media(max-width:959px) { .customer-edit-button { width:32px; height:32px; padding:0; } .customer-edit-button span { display:none; } }
+
+/* 中间区域仅展示接口卡片；排序通过 FLIP 位移动画，不重挂载卡片。 */
+.endpoint-board { display:flex; flex-direction:column; min-width:0; min-height:0; width:100%; }
+.endpoint-board-header { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 24px; border-bottom:1px solid var(--border); }
+.endpoint-board-header p { color:var(--muted-foreground); font-size:11px; margin-top:4px; }
+.endpoint-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(250px,100%),1fr)); align-content:start; gap:14px; padding:20px 24px; overflow:auto; flex:1; min-height:0; }
+.endpoint-grid>.empty-state { grid-column:1/-1; }
+.endpoint-card { border:1px solid var(--border); border-radius:10px; background:var(--surface); min-width:0; padding:12px; transition:box-shadow var(--motion-fast),border-color var(--motion-fast),opacity var(--motion-fast); }
+.endpoint-card:hover { border-color:var(--control-border); box-shadow:0 3px 12px #00000008; }
+.endpoint-card.is-dragging { opacity:.45; }
+.endpoint-card.is-drop-target { border-color:var(--accent); box-shadow:0 0 0 2px var(--accent); }
+.endpoint-card-top { display:flex; align-items:center; gap:8px; }
+.card-grip { margin-left:auto; border:0; background:transparent; color:var(--muted-foreground); padding:5px; cursor:grab; border-radius:4px; }
+.card-grip:active { cursor:grabbing; }
+.endpoint-card-open { display:flex; flex-direction:column; gap:8px; width:100%; text-align:left; border:0; background:transparent; padding:12px 0 16px; min-width:0; }
+.endpoint-card-open strong,.endpoint-card-open code { max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.endpoint-card-open strong { font-size:14px; }
+.endpoint-card-open code { font:12px ui-monospace,monospace; color:var(--muted-foreground); }
+.endpoint-card-footer { display:flex; align-items:center; gap:8px; border-top:1px solid var(--border); padding-top:10px; color:var(--muted-foreground); font-size:11px; }
+.endpoint-card-footer>.button { margin-left:auto; }
+.endpoint-board-footer { display:flex; justify-content:space-between; gap:12px; padding:8px 24px; font-size:11px; color:var(--muted-foreground); border-top:1px solid var(--border); }
+.endpoint-dialog { width:min(820px,calc(100vw - 48px)); height:min(760px,90vh); max-height:90vh; display:flex; flex-direction:column; overflow:hidden; padding:22px 0 0; }
+.endpoint-dialog>.dialog-title,.endpoint-dialog>.dialog-description { margin-left:24px; margin-right:48px; flex-shrink:0; }
+.endpoint-dialog>.dialog-description { margin-bottom:12px; }
+.endpoint-modal-body { display:flex; flex-direction:column; flex:1; min-height:0; }
+.endpoint-dialog .editor-footer { gap:10px; }
+.endpoint-dialog .editor-footer>.muted { margin-right:auto; }
+@media(max-width:959px) { .endpoint-grid { padding:14px 16px; gap:12px; } .endpoint-board-header { padding:12px 16px; } }

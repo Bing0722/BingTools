@@ -24,6 +24,7 @@ export interface AppApi {
     deleteCustomer(customerId: string): Promise<Result<SimulatorSnapshot>>
     selectCustomer(customerId: string): Promise<Result<SimulatorSnapshot>>
     saveEndpoint(customerId: string, endpoint: Endpoint): Promise<Result<SimulatorSnapshot>>
+    reorderEndpoints(customerId: string, endpointIds: string[]): Promise<Result<SimulatorSnapshot>>
     deleteEndpoint(customerId: string, endpointId: string): Promise<Result<SimulatorSnapshot>>
     setEndpointEnabled(customerId: string, endpointId: string, enabled: boolean): Promise<Result<SimulatorSnapshot>>
     start(customerId: string): Promise<Result<SimulatorSnapshot>>

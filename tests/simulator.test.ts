@@ -171,6 +171,24 @@ describe('configuration and lifecycle', () => {
     await controller.execute({ type: 'start', customerId: copy.id })
     await expect(controller.execute({ type: 'saveCustomer', customer: { ...copy, id: randomUUID(), name: 'Third' }, sourceCustomerId: source.id })).rejects.toThrow('STOP_FIRST')
   })
+  it('persists exact endpoint permutations, preserves live responses and rejects stale or foreign IDs', async () => {
+    const { controller, repository, path } = await repositoryFixture()
+    const { endpoints, ...input } = await customer([endpoint(), endpoint({ path:'/second', enabled:false })])
+    await controller.execute({ type:'saveCustomer', customer:input })
+    for (const entry of endpoints) await controller.execute({ type:'saveEndpoint', customerId:input.id, endpoint:entry })
+    await controller.execute({ type:'start', customerId:input.id })
+    const ids = endpoints.map((entry) => entry.id)
+    for (const invalid of [[ids[0]], [ids[0], ids[0]], [ids[0], randomUUID()]]) {
+      await expect(controller.execute({ type:'reorderEndpoints', customerId:input.id, endpointIds:invalid })).rejects.toThrow('INVALID_INPUT')
+    }
+    vi.spyOn(repository, 'update').mockRejectedValueOnce(new Error('disk full'))
+    await expect(controller.execute({ type:'reorderEndpoints', customerId:input.id, endpointIds:[...ids].reverse() })).rejects.toThrow('SAVE_FAILED')
+    expect(controller.snapshot().config.customers[0].endpoints).toEqual(endpoints)
+    await controller.execute({ type:'reorderEndpoints', customerId:input.id, endpointIds:[...ids].reverse() })
+    expect(controller.snapshot().config.customers[0].endpoints).toEqual([...endpoints].reverse())
+    expect(await (await fetch(`http://127.0.0.1:${input.port}/api/example`)).json()).toEqual({ok:true})
+    expect((await new SimulatorRepository(path).load()).customers[0].endpoints.map((entry) => entry.id)).toEqual([...ids].reverse())
+  })
   it('persists before hot update, protects listeners and cleans subscriptions', async () => {
     const { controller, repository } = await repositoryFixture()
     const a = await customer()

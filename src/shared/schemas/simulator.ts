@@ -52,6 +52,7 @@ export const simulatorCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('deleteCustomer'), customerId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('selectCustomer'), customerId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('saveEndpoint'), customerId: z.string().uuid(), endpoint: endpointSchema }).strict(),
+  z.object({ type: z.literal('reorderEndpoints'), customerId: z.string().uuid(), endpointIds: z.array(z.string().uuid()).max(500) }).strict(),
   z.object({ type: z.literal('deleteEndpoint'), customerId: z.string().uuid(), endpointId: z.string().uuid() }).strict(),
   z.object({ type: z.literal('setEndpointEnabled'), customerId: z.string().uuid(), endpointId: z.string().uuid(), enabled: z.boolean() }).strict(),
   z.object({ type: z.literal('start'), customerId: z.string().uuid() }).strict(),

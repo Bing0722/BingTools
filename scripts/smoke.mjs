@@ -35,6 +35,8 @@ async function waitTheme(page, theme) {
 async function screenshot(page, name) {
   const dismiss = page.getByRole('button', { name: /^(Dismiss notification|关闭通知)$/ })
   while (await dismiss.count()) await dismiss.first().click()
+  // 等待有限过渡结束，截图不能停在卡片位移/弹窗淡入的中间帧。
+  await page.evaluate(() => Promise.all(document.getAnimations().filter((animation) => animation.effect?.getTiming().iterations !== Infinity).map((animation) => animation.finished.catch(() => {}))))
   await page.screenshot({ path: `test-results/${name}.png` })
 }
 async function goSettings(page) {
@@ -84,6 +86,7 @@ try {
   await screenshot(page, 'json-formatted')
   await page.getByRole('switch', { name: '启用', exact: true }).click()
   await page.getByRole('button', { name: '保存接口', exact: true }).click()
+  await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
   await page.getByRole('button', { name: '启动服务', exact: true }).click()
   await page.locator('.runtime-badge').filter({ hasText: '运行中' }).waitFor()
   assert.deepEqual(await (await fetch(url + '?query=ignored', { headers: { Authorization: 'secret', Cookie: 'token=secret' } })).json(), { ok: true })
@@ -97,21 +100,22 @@ try {
   await page.evaluate(() => {
     window.toggleFlashes = []
     window.toggleObserver = new MutationObserver((records) => {
-      if (records.some((record) => record.attributeName === 'disabled' && record.target.matches('.editor-fields input,.editor-fields textarea'))) window.toggleFlashes.push('disabled')
+      if (records.some((record) => record.attributeName === 'disabled' && record.target.matches('.endpoint-card button'))) window.toggleFlashes.push('disabled')
     })
-    window.toggleObserver.observe(document.querySelector('.editor-fields'), { attributes: true, subtree: true })
+    window.toggleObserver.observe(document.querySelector('.endpoint-grid'), { attributes: true, subtree: true })
   })
   await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
-  await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'false')
+  await page.waitForFunction(() => document.querySelector('.endpoint-card [role="switch"]')?.getAttribute('aria-checked') === 'false')
   assert.equal((await fetch(url)).status, 404)
   assert.deepEqual(await page.evaluate(() => { window.toggleObserver.disconnect(); return window.toggleFlashes }), [])
   await page.getByRole('switch', { name: '启用接口 健康检查', exact: true }).click()
-  await page.waitForFunction(() => document.querySelector('.endpoint-item [role="switch"]')?.getAttribute('aria-checked') === 'true')
+  await page.waitForFunction(() => document.querySelector('.endpoint-card [role="switch"]')?.getAttribute('aria-checked') === 'true')
+  await page.getByRole('button', { name: '编辑接口 健康检查', exact: true }).click()
   await page.getByLabel('响应内容', { exact: true }).fill('{"updated":true}')
   await page.getByRole('button', { name: '保存接口', exact: true }).click()
-  await page.getByRole('button', { name: '保存接口', exact: true }).waitFor({ state: 'visible' })
-  await page.waitForFunction(() => document.querySelector('.editor-footer .button')?.disabled)
+  await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
   assert.deepEqual(await (await fetch(url)).json(), { updated: true })
+  await page.getByRole('button', { name: '编辑接口 健康检查', exact: true }).click()
   await page.getByLabel('响应内容', { exact: true }).fill('{broken')
   assert.equal(await page.getByLabel('响应内容', { exact: true }).getAttribute('aria-invalid'), 'true')
   assert.equal(await page.getByRole('button', { name: '美化 JSON', exact: true }).isDisabled(), true)
@@ -122,13 +126,16 @@ try {
   await page.getByLabel('响应格式', { exact: true }).selectOption('json')
   await page.getByRole('button', { name: '保存接口', exact: true }).click()
   await page.locator('.toast.error').filter({ hasText: 'JSON' }).waitFor()
-  // 导航的取消与放弃均经过真实路由阻塞器。
-  await page.getByRole('link', { name: '设置', exact: true }).click()
-  dialog = page.getByRole('dialog')
+  // 关闭弹窗时保留未保存提示，取消继续编辑、放弃回到卡片。
+  await page.keyboard.press('Escape')
+  dialog = page.getByRole('dialog').filter({ has: page.getByRole('button', { name: '放弃修改', exact: true }) })
   await dialog.getByRole('button', { name: '取消', exact: true }).click()
+  await dialog.waitFor({ state: 'hidden' })
   assert.equal(await page.getByLabel('响应内容', { exact: true }).inputValue(), '{broken')
+  await page.keyboard.press('Escape')
+  await page.getByRole('button', { name: '放弃修改', exact: true }).click()
+  await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
   await page.getByRole('link', { name: '设置', exact: true }).click()
-  await page.getByRole('dialog').getByRole('button', { name: '放弃修改', exact: true }).click()
   await page.getByRole('button', { name: '深色', exact: true }).click()
   await waitTheme(page, 'dark')
   await page.getByLabel('语言', { exact: true }).selectOption('en')
@@ -149,7 +156,7 @@ try {
   await screenshot(page, 'update-demo')
   assert.equal(await application.evaluate(({ Menu }) => Menu.getApplicationMenu().items.some((item) => item.label === 'Edit')), true)
   await page.getByRole('link', { name: 'Server simulator', exact: true }).click()
-  assert.equal(await page.getByLabel('Response body', { exact: true }).inputValue(), '{"updated":true}')
+  assert.equal(await page.evaluate(async () => { const result = await window.app.simulator.getSnapshot(); return result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints[0].body }), '{"updated":true}')
   await page.getByRole('heading', { name: 'Server simulator', exact: true }).waitFor()
   await screenshot(page, 'simulator-dark')
   await page.getByRole('button', { name: 'Notifications', exact: true }).click()
@@ -160,7 +167,7 @@ try {
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(850, 620))
   await page.waitForFunction(() => window.innerWidth < 960)
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth), false)
-  assert.equal(await page.locator('.endpoint-list').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.endpoint-editor').getBoundingClientRect().top + 1), true)
+  assert.equal(await page.locator('.endpoint-card').first().evaluate((element) => element.getBoundingClientRect().right <= window.innerWidth), true)
   const logHeight = await page.locator('.log-panel').evaluate((element) => element.getBoundingClientRect().height)
   await page.getByRole('button', { name: 'Collapse logs', exact: true }).click()
   await page.waitForFunction((height) => {
@@ -177,7 +184,7 @@ try {
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(800, 560))
   await page.waitForFunction(() => window.innerWidth <= 800)
   assert.equal(await page.locator('.log-panel').evaluate((element) => element.getBoundingClientRect().bottom <= window.innerHeight + 1), true)
-  assert.equal(await page.locator('.editor-footer').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.log-panel').getBoundingClientRect().top + 1), true)
+  assert.equal(await page.locator('.endpoint-board').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.log-panel').getBoundingClientRect().top + 1), true)
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(850, 620))
   await goSettings(page)
   await page.getByRole('button', { name: 'Light', exact: true }).click()
@@ -220,7 +227,7 @@ try {
   await waitTheme(page, 'light')
   await page.locator('.runtime-badge').filter({ hasText: 'Stopped' }).waitFor()
   assert.equal(await page.getByLabel('Customer', { exact: true }).textContent(), '集成验证客户')
-  assert.equal(await page.getByLabel('Response body', { exact: true }).inputValue(), '{"updated":true}')
+  assert.equal(await page.evaluate(async () => { const result = await window.app.simulator.getSnapshot(); return result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints[0].body }), '{"updated":true}')
   const saved = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'))
   assert.equal(saved.language, 'en')
   // 新增时可复制客户；重名以通知提示，改名不影响接口。
@@ -238,7 +245,7 @@ try {
   await dialog.getByRole('button', { name: 'Save', exact: true }).click()
   await dialog.waitFor({ state: 'hidden' })
   assert.equal(await page.getByLabel('Customer', { exact: true }).locator('option').count(), 2)
-  assert.equal(await page.getByLabel('Response body', { exact: true }).inputValue(), '{"updated":true}')
+  assert.equal(await page.evaluate(async () => { const result = await window.app.simulator.getSnapshot(); return result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints[0].body }), '{"updated":true}')
   await page.getByRole('button', { name: 'Edit customer', exact: true }).click()
   dialog = page.getByRole('dialog')
   assert.equal(await dialog.getByLabel('Copy from customer', { exact: true }).count(), 0)
@@ -249,6 +256,45 @@ try {
   const finalConfig = (await page.evaluate(() => window.app.simulator.getSnapshot())).data.config
   assert.equal(finalConfig.customers[0].name, original.name)
   assert.notEqual(finalConfig.customers[1].endpoints[0].id, original.endpoints[0].id)
+  // 真实拖拽和键盘排序；保存到主进程后重启仍按新顺序显示。
+  for (const [name, path] of [['Second endpoint', '/second'], ['Third endpoint', '/third']]) {
+    await page.getByRole('button', { name: 'Add endpoint', exact: true }).click()
+    await page.getByLabel('Endpoint name', { exact: true }).fill(name)
+    await page.getByLabel('URL path', { exact: true }).fill(path)
+    await page.getByRole('button', { name: 'Save endpoint', exact: true }).click()
+    await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
+  }
+  const orderBefore = await page.locator('.endpoint-card').evaluateAll((cards) => cards.map((card) => card.dataset.endpointId))
+  await page.getByRole('button', { name: 'Move endpoint 健康检查', exact: true }).dragTo(page.locator('.endpoint-card').last())
+  await page.waitForFunction((id) => document.querySelector('.endpoint-card:last-child')?.getAttribute('data-endpoint-id') === id, orderBefore[0])
+  await page.waitForFunction(async (id) => {
+    const result = await window.app.simulator.getSnapshot()
+    return result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints.at(-1).id === id
+  }, orderBefore[0])
+  await page.getByRole('button', { name: 'Move endpoint 健康检查', exact: true }).focus()
+  await page.keyboard.press('ArrowLeft')
+  await page.waitForFunction((id) => document.querySelectorAll('.endpoint-card')[1]?.getAttribute('data-endpoint-id') === id, orderBefore[0])
+  const expectedOrder = [orderBefore[1], orderBefore[0], orderBefore[2]]
+  await page.waitForFunction(async (ids) => {
+    const result = await window.app.simulator.getSnapshot()
+    return JSON.stringify(result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints.map((entry) => entry.id)) === JSON.stringify(ids)
+  }, expectedOrder)
+  await screenshot(page, 'endpoint-cards')
+  await application.close(); application = undefined
+  page = await launch('en')
+  assert.deepEqual(await page.locator('.endpoint-card').evaluateAll((cards) => cards.map((card) => card.dataset.endpointId)), expectedOrder)
+  await page.getByRole('button', { name: 'Edit endpoint 健康检查', exact: true }).click()
+  await screenshot(page, 'endpoint-dialog')
+  await page.getByLabel('Endpoint name', { exact: true }).fill('Edited health')
+  await page.keyboard.press('Escape')
+  await page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Discard', exact: true }) }).getByRole('button', { name: 'Save', exact: true }).click()
+  await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
+  await page.getByRole('button', { name: 'Edit endpoint Edited health', exact: true }).waitFor()
+  await page.getByRole('button', { name: 'Edit endpoint Third endpoint', exact: true }).click()
+  await page.getByRole('button', { name: 'Delete endpoint', exact: true }).click()
+  await page.getByRole('button', { name: 'Delete', exact: true }).click()
+  await page.locator('.endpoint-dialog').waitFor({ state: 'hidden' })
+  assert.equal(await page.locator('.endpoint-card').count(), 2)
   assert.deepEqual(errors, [])
   console.log('PASS: HTTP workflow, hot updates, logs/redaction, unsaved edits, notifications, language persistence, themes, narrow layout, window-close/reopen and restart; no renderer errors.')
 } catch (error) {

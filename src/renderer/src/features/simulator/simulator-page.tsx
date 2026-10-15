@@ -1,12 +1,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { Circle, FileJson, Pencil, Play, Plus, Save, Server, Square, Trash2 } from 'lucide-react'
+import { Circle, Pencil, Play, Plus, Save, Server, Square, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
 import { useNotifications } from '@/stores/notification-store'
 import { useSimulator } from '@/stores/simulator-store'
 import { customerInputSchema, customerNameKey, endpointSchema, methods, type CustomerInput, type Endpoint } from '../../../../shared/schemas/simulator'
+import { EndpointCards } from './endpoint-cards'
 import { LogPanel } from './log-panel'
 import { ResponseBodyEditor } from './response-body-editor'
 
@@ -35,7 +36,7 @@ export function SimulatorPage() {
 
   useEffect(() => {
     const current = useSimulator.getState().snapshot.config.customers.find((entry) => entry.id === customerId)
-    setDraft(current?.endpoints[0] ?? null)
+    setDraft(null)
     setListener({ host: current?.host ?? '', port: current ? String(current.port) : '' })
   }, [customerId])
 
@@ -84,6 +85,13 @@ export function SimulatorPage() {
     if (blocker.state === 'blocked') blocker.reset()
     requestAnimationFrame(() => focusReturn.current?.focus())
   }
+  function closeEndpoint() {
+    if (useSimulator.getState().busy) return
+    if (endpointDirty) {
+      focusReturn.current = document.activeElement as HTMLElement
+      setPending(() => () => setDraft(null))
+    } else setDraft(null)
+  }
   function newEndpoint() {
     guard(() => setDraft({ id: crypto.randomUUID(), name: t('newEndpoint'), path: '/api/example', method: 'GET', format: 'json', status: 200, body: '{\n  "ok": true\n}', enabled: false }))
   }
@@ -129,21 +137,20 @@ export function SimulatorPage() {
       {error === 'CONNECTION_FAILED' && <Button variant="ghost" size="sm" onClick={() => void run(() => window.app.simulator.getSnapshot())}>{t('retry')}</Button>}
     </div>
     <div className="simulator-workspace">{!customer ? <div className="empty-state"><Server size={32} /><h2>{t('noCustomers')}</h2><p>{t('noCustomersHelp')}</p><Button onClick={() => openCustomer(false)}><Plus size={15} />{t('addCustomer')}</Button></div> : <>
-      <section className="endpoint-list" aria-label={t('endpoints')}><div className="endpoint-list-header"><h2>{t('endpoints')} <span className="badge">{customer.endpoints.length}</span></h2><Button size="icon" variant="ghost" aria-label={t('addEndpoint')} disabled={busy} onClick={newEndpoint}><Plus size={17} /></Button></div><div className="endpoint-items">{!customer.endpoints.length && <div className="empty-mini"><FileJson size={24} /><p>{t('noEndpoints')}</p><small>{t('noEndpointsHelp')}</small></div>}{customer.endpoints.map((entry) => <div className={`endpoint-item ${draft?.id === entry.id ? 'selected' : ''}`} key={entry.id}><button className="endpoint-select" onClick={() => guard(() => setDraft(useSimulator.getState().snapshot.config.customers.find((item) => item.id === customer.id)?.endpoints.find((item) => item.id === entry.id) ?? null))}><span className="endpoint-name">{entry.name}</span><span><b className={`method method-${entry.method.toLowerCase()}`}>{entry.method}</b><code>{entry.path}</code></span></button><button className="switch" role="switch" aria-disabled={working} aria-busy={pendingToggle === entry.id} aria-label={t('enableEndpoint', { name: entry.name })} aria-checked={entry.enabled} onClick={() => guard(async () => {
-        if (await run(() => window.app.simulator.setEndpointEnabled(customer.id, entry.id, !entry.enabled), undefined, entry.id)) {
-          // 仅同步开关字段，保留等待期间用户在编辑器中的输入。
-          setDraft((current) => current?.id === entry.id ? { ...current, enabled: !entry.enabled } : current)
-        }
-      })}><span /></button></div>)}</div><div className="endpoint-list-footer">{t('activeCount', { count: customer.endpoints.filter((entry) => entry.enabled).length })}</div></section>
-      <section className="endpoint-editor" aria-label={t('edit')}>
-        {!draft ? <div className="empty-state"><FileJson size={32} /><h2>{t('selectEndpoint')}</h2><Button variant="outline" onClick={newEndpoint}>{t('addEndpoint')}</Button></div> : <><div className="editor-heading"><h2>{draft.name || t('newEndpoint')}</h2>{endpointDirty && <span className="badge">{t('unsaved')}</span>}<Button size="icon" variant="ghost" disabled={busy} aria-label={t('deleteEndpoint')} onClick={() => setDeletion('endpoint')}><Trash2 size={15} /></Button></div>
+      <EndpointCards key={customer.id} endpoints={customer.endpoints} busy={working} pendingToggle={pendingToggle}
+        onAdd={newEndpoint} onEdit={(entry) => guard(() => setDraft(entry))}
+        onToggle={(entry) => guard(async () => { await run(() => window.app.simulator.setEndpointEnabled(customer.id, entry.id, !entry.enabled), undefined, entry.id) })}
+        onReorder={(ids) => run(() => window.app.simulator.reorderEndpoints(customer.id, ids))} />
+    </>}</div>
+    <LogPanel customerId={customer?.id ?? null} />
+    <Dialog className="endpoint-dialog" open={!!draft} onOpenChange={(open) => { if (!open) closeEndpoint() }} title={draft?.name || t('newEndpoint')} description={t('endpointDialogHelp')}>
+      {draft && <div className="endpoint-modal-body">
           <div className="editor-fields" key={draft.id}><label className="field"><span>{t('endpointName')}</span><input aria-label={t('endpointName')} value={draft.name} maxLength={100} onChange={(event) => setField('name', event.target.value)} disabled={busy} /></label><div className="route-fields"><label className="field"><span>{t('method')}</span><select aria-label={t('method')} value={draft.method} onChange={(event) => setField('method', event.target.value as Endpoint['method'])} disabled={busy}>{methods.map((method) => <option key={method}>{method}</option>)}</select></label><label className="field"><span>{t('path')}</span><input aria-label={t('path')} value={draft.path} onChange={(event) => setField('path', event.target.value)} disabled={busy} /></label></div><code className="address-preview">{fullAddress}</code><p className="field-hint">{t('endpointHelp')}</p>
           <div className="response-fields"><label className="field"><span>{t('format')}</span><select aria-label={t('format')} value={draft.format} onChange={(event) => setField('format', event.target.value as Endpoint['format'])} disabled={busy}><option value="json">JSON</option><option value="text">{t('text')}</option></select></label><label className="field"><span>{t('statusCode')}</span><input aria-label={t('statusCode')} type="number" min={200} max={599} value={draft.status || ''} onChange={(event) => setField('status', Number(event.target.value))} disabled={busy} /></label><label className="enabled-field"><span>{t('enabled')}</span><button className="switch" role="switch" aria-label={t('enabled')} aria-checked={draft.enabled} aria-disabled={working} onClick={() => { if (!working) setField('enabled', !draft.enabled) }}><span /></button></label></div>
           <ResponseBodyEditor key={draft.id + draft.format} body={draft.body} format={draft.format} disabled={busy} onChange={(body) => setField('body', body)} /><p className="field-hint">{t('responseHint')}</p></div>
-          <div className="editor-footer"><span className="muted">{t(endpointDirty ? 'unsaved' : 'saved')}</span><Button disabled={working || !dirty} onClick={() => void saveChanges()}><Save size={15} />{t(busy ? 'saving' : 'saveEndpoint')}</Button></div></>}
-      </section>
-    </>}</div>
-    <LogPanel customerId={customer?.id ?? null} />
+        <div className="editor-footer"><Button variant="ghost" disabled={working} onClick={() => setDeletion('endpoint')}><Trash2 size={15} />{t('deleteEndpoint')}</Button><span className="muted">{t(endpointDirty ? 'unsaved' : 'saved')}</span><Button variant="outline" disabled={working} onClick={closeEndpoint}>{t('close')}</Button><Button disabled={working || !dirty} onClick={() => void saveChanges().then((saved) => { if (saved) setDraft(null) })}><Save size={15} />{t(busy ? 'saving' : 'saveEndpoint')}</Button></div>
+      </div>}
+    </Dialog>
     <Dialog open={!!pending || blocker.state === 'blocked'} onOpenChange={(open) => { if (!open) cancelNavigation() }} title={t('unsavedTitle')} description={t('unsavedHelp')}>
       <div className="dialog-actions"><Button variant="ghost" disabled={busy} onClick={cancelNavigation}>{t('cancel')}</Button><Button variant="outline" disabled={busy} onClick={() => void continueNavigation(false)}>{t('discard')}</Button><Button disabled={busy} onClick={() => void continueNavigation(true)}>{t('save')}</Button></div>
     </Dialog>

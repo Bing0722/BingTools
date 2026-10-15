@@ -80,7 +80,12 @@ export class SimulatorController {
         }
       } else {
         if (busy && runtime.customerId !== customer.id) throw new Error('STOP_FIRST')
-        if (command.type === 'saveEndpoint') {
+        if (command.type === 'reorderEndpoints') {
+          // 只接受当前客户接口 ID 的完整排列，拒绝重复、缺失或跨客户 ID。
+          const entries = new Map(customer.endpoints.map((entry) => [entry.id, entry]))
+          if (command.endpointIds.length !== entries.size || new Set(command.endpointIds).size !== entries.size || command.endpointIds.some((id) => !entries.has(id))) throw new Error('INVALID_INPUT')
+          customer.endpoints = command.endpointIds.map((id) => entries.get(id)!)
+        } else if (command.type === 'saveEndpoint') {
           if (customer.endpoints.some((entry) => entry.id !== command.endpoint.id && entry.method === command.endpoint.method && entry.path === command.endpoint.path)) throw new Error('DUPLICATE_ROUTE')
           const index = customer.endpoints.findIndex((entry) => entry.id === command.endpoint.id)
           if (index < 0) customer.endpoints.push(command.endpoint)
