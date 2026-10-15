@@ -171,3 +171,8 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 类型检查、Lint、45 项测试、生产构建和版本说明检查通过。7 项运控测试覆盖半包/粘包、三种分帧、超长帧、Mock 匹配/回复/手动发送、热更新、关闭后释放、断开后重连、客户隔离/复制、重复接收内容、写入失败、持久化、日志批量/上限/截断、订阅清理及每 200ms 一条连续 10 条的收发；这不是长时间硬件压力测试。
 - macOS Electron 运控页面测试通过：原生串口枚举、客户/规则编辑、开关、真实拖拽、HEX 校验错误、未保存放弃、无设备连接错误、800×560 布局、配置重启恢复和停止状态。已检查 motion-cards、motion-serial-settings、motion-narrow 截图。原有完整 HTTP 桌面流程回归通过。
 - pnpm package 本机 macOS ARM64 应用目录打包通过；打包应用原生串口枚举及运控页面验证通过。未连接真实设备，不创建虚拟串口对；Windows COM 实机、真实串口硬件收发与长时性能未验证。未推送、打标签或发布安装包；仍未签名/公证，保留既有 Zod 注释、包体积及默认图标提示。
+
+### 0.4.0 GitHub 分支构建
+
+- [main 构建](https://github.com/Bing0722/BingTools/actions/runs/38712492764) 成功。Windows 2022 x64 与 macOS 14 ARM64 均完成在线依赖安装、类型检查、Lint、45 项测试、版本说明校验和原生打包。
+- Actions 已上传 `BingTools-win-x64` 与 `BingTools-mac-arm64` 产物；没有推送 `v0.4.0` 标签，也没有创建正式 Release。构建成功不等于串口硬件或 Windows COM 实机验收。
