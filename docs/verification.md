@@ -132,3 +132,10 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 类型检查、Lint、生产构建、37 项测试通过。新增测试覆盖无效排序、持久化失败不改变配置、运行中排序不影响 HTTP 响应以及重新读取后的顺序。
 - macOS Electron 完整桌面测试通过：真实鼠标拖拽、方向键排序、重启恢复、弹窗关闭取消/放弃/保存、删除接口，以及既有 HTTP 热更新、日志、客户复制、主题、语言、窄窗和窗口生命周期流程。已检查动画结束后的 endpoint-cards 和 endpoint-dialog 截图；无 renderer 异常。
 - 验证期间修正测试对确认按钮英文名称的匹配，并等待退出动画后再操作下一层弹窗。Windows 实机与本轮打包/发布未执行；构建仍有原有 Zod 注释和包体积提示。
+
+## 2026-10-15：0.3.1 发布准备
+
+- 版本由 0.3.0 升至 0.3.1，新增中英文发布说明并汇总标题栏、JSON 编辑、交互反馈、客户复制和接口卡片改动；桌面验证脚本从 package.json 读取版本。
+- `pnpm install --frozen-lockfile`、发布说明校验、Lint、37 项测试、生产构建和 macOS Electron 桌面流程通过。构建包含 TypeScript 检查；桌面流程覆盖更新页版本、HTTP 热更新、排序、弹窗、日志、语言、主题和窗口生命周期。
+- 首次桌面测试因验证脚本使用 JSON 命名导入而无法启动；改为默认导入后完整复验通过。构建仍有既有 Zod 注释和 bundle 大小提示。
+- Windows 实机安装及从 0.3.0 跨版本升级尚未验收；macOS 包仍未签名、公证，只支持手动下载。GitHub Actions 构建和发布结果需在标签推送后核对。

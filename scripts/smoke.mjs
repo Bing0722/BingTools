@@ -4,6 +4,7 @@ import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import assert from 'node:assert/strict'
+import packageInfo from '../package.json' with { type: 'json' }
 
 // 全流程使用独立配置目录和临时监听端口，不接触正式客户数据。
 const directory = await mkdtemp(join(tmpdir(), 'bingtools-desktop-'))
@@ -149,7 +150,7 @@ try {
     await updatePanel.getByText(/Demo complete/).waitFor()
   } else {
     assert.equal(updateState.data.repository, 'Bing0722/BingTools')
-    await updatePanel.getByText('BingTools 0.3.0', { exact: false }).waitFor()
+    await updatePanel.getByText(`BingTools ${packageInfo.version}`, { exact: false }).waitFor()
   }
   assert.equal((await page.evaluate(() => window.app.updater.install())).ok, false)
   await updatePanel.scrollIntoViewIfNeeded()
