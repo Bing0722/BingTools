@@ -73,7 +73,7 @@ src/renderer/src/
 
 ## 持久化
 
-`settings.json` schemaVersion 2 保存 theme、language、sidebarCollapsed、sidebarWidth、windowBounds。v1 显式迁移，补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
+`settings.json` schemaVersion 3 保存 theme、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1/v2 显式迁移，补右下角通知位置；v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
 `simulator.json` schemaVersion 1 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
@@ -127,3 +127,5 @@ EndpointCards 负责原生 HTML 拖放、键盘顺序调整与本地排序预览
 新增受控 reorderEndpoints API/命令，主进程校验传入 ID 必须是目标客户当前接口集合的完整排列，拒绝重复、缺失、外来或过期 ID，沿用串行写入和保存后更新运行配置。顺序直接保存在已有 endpoints 数组，无持久化版本变更；复制客户保留该顺序。保存失败 UI 回滚，不改变现有 HTTP 响应。
 
 SimulatorPage 的接口 draft 只在编辑弹窗打开时存在；新增、编辑、关闭及未保存确认沿用现有 schema/guard，保存成功关闭，删除仍需确认。Dialog 支持可选 className，以复用原有 Radix 焦点与动效而不引入第二套弹窗。
+
+通知 store 默认忽略非重要 info 事件，错误始终提示；服务生命周期与可用更新显式标记为重要事件。设置成功静默，失败仍通知。ToastHost 从设置展示副本读取四角位置，IPC 严格枚举校验，沿用原子持久化；通知内容本身不持久化。

@@ -13,6 +13,8 @@ interface NotificationState {
 export const useNotifications = create<NotificationState>((set) => ({
   items: [], toasts: [],
   push: (key, level = 'info', important = level === 'error') => set((state) => {
+    // 普通操作由控件状态反馈；只有重要事件和错误才打扰用户。
+    if (!important && level !== 'error') return state
     const now = Date.now()
     const previous = [...state.items, ...state.toasts].find((entry) => entry.key === key && now - entry.time < 5000)
     const entry: Notice = previous

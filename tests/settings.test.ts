@@ -17,7 +17,7 @@ afterEach(async () => { await Promise.all(directories.splice(0).map((directory) 
 
 describe('settings boundary', () => {
   it('rejects privileged, unknown and out-of-range fields', () => {
-    for (const input of [{ windowBounds: { x: 0 } }, { schemaVersion: 2 }, { theme: 'blue' }, { sidebarWidth: 10 }, { sidebarCollapsed: 'yes' }]) {
+    for (const input of [{ windowBounds: { x: 0 } }, { schemaVersion: 2 }, { theme: 'blue' }, { sidebarWidth: 10 }, { sidebarCollapsed: 'yes' }, { notificationPosition: 'center' }]) {
       expect(settingsPatchSchema.safeParse(input).success).toBe(false)
     }
     expect(settingsPatchSchema.safeParse({ theme: 'dark', sidebarWidth: 240 }).success).toBe(true)
@@ -35,9 +35,17 @@ describe('settings persistence', () => {
     const { repository, path } = await fixture()
     const old = { schemaVersion: 1, theme: 'dark', sidebarWidth: 280, sidebarCollapsed: true, windowBounds: { x: 10, y: 20, width: 1000, height: 700 } }
     await writeFile(path, JSON.stringify(old))
-    expect(await repository.load()).toEqual({ ...old, schemaVersion: 2, language: 'system' })
+    expect(await repository.load()).toEqual({ ...old, schemaVersion: 3, language: 'system', notificationPosition: 'bottom-right' })
     await repository.update({ language: 'en' })
     expect(await new SettingsRepository(path).load()).toMatchObject({ language: 'en', theme: 'dark', windowBounds: old.windowBounds })
+  })
+  it('migrates v2 and persists notification position', async () => {
+    const { repository, path } = await fixture()
+    const old = { schemaVersion: 2, theme: 'light', language: 'en', sidebarWidth: 240, sidebarCollapsed: false }
+    await writeFile(path, JSON.stringify(old))
+    expect(await repository.load()).toEqual({ ...old, schemaVersion: 3, notificationPosition: 'bottom-right' })
+    await repository.update({ notificationPosition: 'top-left' })
+    expect(await new SettingsRepository(path).load()).toMatchObject({ language: 'en', notificationPosition: 'top-left' })
   })
   it('restores saved settings after restart', async () => {
     const { repository, path } = await fixture()

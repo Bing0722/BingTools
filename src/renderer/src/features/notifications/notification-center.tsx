@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Bell, CheckCheck, Info, TriangleAlert, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
+import { useSettings } from '@/stores/settings-store'
 import { useNotifications } from '@/stores/notification-store'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
@@ -21,6 +22,7 @@ export function NotificationCenter() {
 export function ToastHost() {
   const { t } = useTranslation()
   const { toasts, dismiss } = useNotifications()
+  const position = useSettings((state) => state.preferences.notificationPosition)
   useEffect(() => {
     if (!toasts.length) return
     const timer = setInterval(() => { for (const item of useNotifications.getState().toasts) if (item.expires <= Date.now()) dismiss(item.id) }, 500)
@@ -28,5 +30,5 @@ export function ToastHost() {
   }, [toasts.length, dismiss])
   // Radix 会延迟到 click 后判断外部点击；届时通知可能已卸载，
   // 因此在 pointerdown 阶段隔离通知交互，防止误关仍有草稿的弹窗。
-  return <div className="toast-host" onPointerDown={(event) => event.stopPropagation()} aria-live="polite" aria-relevant="additions text">{toasts.map((item) => <div className={`toast ${item.level}`} key={item.id}><span>{t(item.key)}{item.count > 1 && ` (${item.count})`}</span><Button variant="ghost" size="icon" onClick={() => dismiss(item.id)} aria-label={t('dismiss')}><X size={14} /></Button></div>)}</div>
+  return <div className="toast-host" data-position={position} onPointerDown={(event) => event.stopPropagation()} aria-live="polite" aria-relevant="additions text">{toasts.map((item) => <div className={`toast ${item.level}`} key={item.id}><span>{t(item.key)}{item.count > 1 && ` (${item.count})`}</span><Button variant="ghost" size="icon" onClick={() => dismiss(item.id)} aria-label={t('dismiss')}><X size={14} /></Button></div>)}</div>
 }

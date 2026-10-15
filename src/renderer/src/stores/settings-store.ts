@@ -31,7 +31,6 @@ export const useSettings = create<SettingsState>((set, get) => ({
       const result = await window.app.settings.update(patch)
       if (!result.ok) { set({ error: result.error.code, saving: false }); useNotifications.getState().push(result.error.code, 'error'); return false }
       set({ ...result.data, saving: false })
-      useNotifications.getState().push('saved')
       return true
     } catch {
       set({ error: 'CONNECTION_FAILED', saving: false })

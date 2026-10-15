@@ -209,5 +209,11 @@
   "moveEndpoint": "移动接口 {{name}}",
   "editEndpointNamed": "编辑接口 {{name}}",
   "endpointOrderSaved": "接口顺序已保存",
-  "endpointDisabled": "已关闭"
+  "endpointDisabled": "已关闭",
+  "notificationPosition": "通知位置",
+  "notificationPositionHelp": "仅提示重要事件和错误；普通操作不弹通知。位置立即生效并自动保存。",
+  "notification_top-left": "左上角",
+  "notification_top-right": "右上角",
+  "notification_bottom-left": "左下角",
+  "notification_bottom-right": "右下角"
 }

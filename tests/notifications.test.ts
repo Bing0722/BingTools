@@ -22,10 +22,13 @@ it('merges short bursts, retains 100 events, and supports read, dismiss and clea
   expect(useNotifications.getState().toasts).toHaveLength(2)
   store.clear(); expect(useNotifications.getState().items).toEqual([])
 })
-it('keeps ordinary feedback out of the notification center', () => {
+it('silences ordinary feedback but retains important events', () => {
   useNotifications.getState().push('endpointSaved')
   expect(useNotifications.getState().items).toEqual([])
-  expect(useNotifications.getState().toasts[0].key).toBe('endpointSaved')
+  expect(useNotifications.getState().toasts).toEqual([])
+  useNotifications.getState().push('SERVER_STARTED', 'info', true)
+  expect(useNotifications.getState().items).toHaveLength(1)
+  expect(useNotifications.getState().toasts).toHaveLength(1)
 })
 it('provides matching nonempty English and Chinese resources', () => {
   expect(Object.keys(en).sort()).toEqual(Object.keys(zh).sort())

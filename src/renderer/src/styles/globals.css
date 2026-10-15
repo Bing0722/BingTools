@@ -308,3 +308,7 @@ textarea { resize:vertical; }
 .endpoint-dialog .editor-footer { gap:10px; }
 .endpoint-dialog .editor-footer>.muted { margin-right:auto; }
 @media(max-width:959px) { .endpoint-grid { padding:14px 16px; gap:12px; } .endpoint-board-header { padding:12px 16px; } }
+
+/* 顶部通知避开标题栏和系统窗口按钮，四角均保留安全边距。 */
+.toast-host[data-position^="top"] { top:72px; bottom:auto; flex-direction:column; }
+.toast-host[data-position$="left"] { left:20px; right:auto; }

@@ -147,3 +147,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [v0.3.1 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.3.1) 已发布，发布正文与 `docs/releases/0.3.1.md` 一致；包含 Windows NSIS EXE、macOS ARM64 DMG/ZIP、对应 blockmap、`latest.yml` 和 `latest-mac.yml`，共 8 个资产。
 - 公开下载并核对 `latest.yml` 与 `latest-mac.yml`：均标记版本 0.3.1，包含对应资产名、SHA-512 和本次更新说明。
 - 尚未在 Windows 实机执行 0.3.0 → 0.3.1 安装升级；macOS 仍使用手动下载。GitHub Actions 的旧版 Action 运行时弃用提示不影响此次成功构建。
+
+## 2026-10-15：减少通知打扰与可配置位置
+
+- 普通设置、侧栏折叠和业务保存成功不再弹提示；通知 store 统一忽略非重要 info 事件，保留错误、服务启停和真实可用更新。错误仍进入通知中心并沿用短时间合并。
+- 设置新增四角通知位置，默认右下角；顶部避开 56px 标题栏。保持通知关闭行为、入场动效和减少动态效果支持。位置通过设置 IPC 保存，v1/v2 数据迁移到 v3，保留已有偏好和窗口信息。
+- 类型检查、Lint、38 项测试、生产构建通过；新增 v2 迁移/位置持久化、非法位置拒绝、普通通知静默与重要事件保留验证。
+- macOS Electron 完整桌面流程通过：收起侧栏无 Toast、四角实际 DOM 边界、位置修改不弹成功通知、错误仍提示、重启后保留位置，以及原有服务/卡片/编辑/语言/主题流程；无 renderer 错误。检查左上角错误通知截图，通知不遮挡标题栏。
+- 无新增依赖。本轮未打包、发布或验证 Windows 实机。构建保留既有 Zod 注释和包体积提示。

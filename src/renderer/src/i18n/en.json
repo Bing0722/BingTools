@@ -209,5 +209,11 @@
   "moveEndpoint": "Move endpoint {{name}}",
   "editEndpointNamed": "Edit endpoint {{name}}",
   "endpointOrderSaved": "Endpoint order saved",
-  "endpointDisabled": "Disabled"
+  "endpointDisabled": "Disabled",
+  "notificationPosition": "Notification position",
+  "notificationPositionHelp": "Only important events and errors show notifications. Position changes apply immediately and are saved automatically.",
+  "notification_top-left": "Top left",
+  "notification_top-right": "Top right",
+  "notification_bottom-left": "Bottom left",
+  "notification_bottom-right": "Bottom right"
 }

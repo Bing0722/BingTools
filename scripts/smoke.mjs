@@ -62,6 +62,7 @@ try {
   } else if (process.platform === 'win32') {
     assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false)
   }
+  assert.equal(await page.locator('.toast').count(), 0)
   await screenshot(page, 'shell-collapsed')
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+b' : 'Control+b')
   await page.waitForFunction(() => Math.abs(document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width - 240) < 1)
@@ -188,6 +189,20 @@ try {
   assert.equal(await page.locator('.endpoint-board').evaluate((element) => element.getBoundingClientRect().bottom <= document.querySelector('.log-panel').getBoundingClientRect().top + 1), true)
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(850, 620))
   await goSettings(page)
+  // 设置位置不产生成功通知；四角使用实际 DOM 边界验证。
+  const dismissNotices = page.getByRole('button', { name: 'Dismiss notification', exact: true })
+  while (await dismissNotices.count()) await dismissNotices.first().click()
+  for (const position of ['top-left', 'top-right', 'bottom-left', 'bottom-right', 'top-left']) {
+    await page.getByLabel('Notification position', { exact: true }).selectOption(position)
+    await page.waitForFunction((value) => document.querySelector('.toast-host').dataset.position === value, position)
+    const rect = await page.locator('.toast-host').boundingBox()
+    const size = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }))
+    assert.ok(position.endsWith('left') ? Math.abs(rect.x - 20) < 1 : Math.abs(rect.x + rect.width - size.width + 20) < 1)
+    assert.ok(position.startsWith('top') ? Math.abs(rect.y - 72) < 1 : Math.abs(rect.y + rect.height - size.height + 20) < 1)
+    assert.equal(await page.locator('.toast').count(), 0)
+  }
+  await page.getByLabel('Notification position', { exact: true }).scrollIntoViewIfNeeded()
+  await screenshot(page, 'notification-settings')
   await page.getByRole('button', { name: 'Light', exact: true }).click()
   await waitTheme(page, 'light')
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1200, 800))
@@ -202,6 +217,7 @@ try {
   await new Promise((resolve) => reserved.listen(port, '127.0.0.1', resolve))
   await page.getByRole('button', { name: 'Start server', exact: true }).click()
   await page.locator('.toast.error').filter({ hasText: 'port is in use' }).waitFor()
+  await page.screenshot({ path: 'test-results/notification-top-left.png', animations: 'disabled' })
   assert.equal(await page.locator('.simulator-top [role="alert"]').count(), 0)
   await page.getByRole('button', { name: 'Notifications', exact: true }).click()
   await page.getByRole('dialog').getByText(/port is in use/).waitFor()
@@ -231,6 +247,8 @@ try {
   assert.equal(await page.evaluate(async () => { const result = await window.app.simulator.getSnapshot(); return result.data.config.customers.find((entry) => entry.id === result.data.config.selectedCustomerId).endpoints[0].body }), '{"updated":true}')
   const saved = JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8'))
   assert.equal(saved.language, 'en')
+  assert.equal(saved.notificationPosition, 'top-left')
+  assert.equal(await page.locator('.toast-host').getAttribute('data-position'), 'top-left')
   // 新增时可复制客户；重名以通知提示，改名不影响接口。
   const original = (await page.evaluate(() => window.app.simulator.getSnapshot())).data.config.customers[0]
   await page.getByRole('button', { name: 'Add customer', exact: true }).first().click()
