@@ -1,3 +1,4 @@
+import { connectUpdates } from '@/stores/update-store'
 import { connectMotion } from '@/stores/motion-store'
 import { useEffect, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -14,6 +15,7 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => { void load() }, [load])
   useEffect(() => connectSimulator(), [])
   useEffect(() => connectMotion(), [])
+  useEffect(() => connectUpdates(), [])
   useEffect(() => {
     document.documentElement.classList.toggle('dark', preferences.theme === 'dark' || (preferences.theme === 'system' && systemDark))
     document.documentElement.style.colorScheme = preferences.theme === 'system' ? (systemDark ? 'dark' : 'light') : preferences.theme

@@ -201,3 +201,10 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 移除顶部本地工作空间文字和侧栏设置下方品牌/版本，清理专用样式；通知按钮使用自动左边距保持右对齐。
 - Lint、类型检查、生产构建、版本说明及 diff 检查通过；macOS Electron 隔离目录验证说明文字已移除、通知按钮右对齐、通知面板正常打开关闭。
 - 纯界面精简未新增单元测试，本轮未打包、发布或验证 Windows 实机；保留既有构建提示。
+
+## 2026-10-16 · 0.4.4 标题栏检查更新
+
+- 通知旁新增更新入口；与设置页共用状态和操作互斥，检查期间旋转，发现版本显示红点，关闭面板后保留。
+- `pnpm lint`、`pnpm build`（含类型检查）、`pnpm test`（48 项）、`pnpm exec node scripts/validate-release.mjs` 通过。构建保留上游 Zod 注释和 chunk 大小警告。
+- `pnpm exec node scripts/update-header-smoke.mjs` 通过：隔离数据的真实 macOS Electron，模拟更新 IPC 覆盖点击检查、红点、设置页同步、旧快照防覆盖、无更新清除、Esc 焦点恢复、中英文、深色窄窗；截图 `test-results/update-header.png`。模拟不连接 GitHub、不下载或安装。
+- 本轮未打包、未发布；Windows 实机、真实更新下载及安装未验证。

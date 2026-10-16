@@ -159,6 +159,7 @@
   "BIND_DENIED": "Permission denied for this port. Choose another port.",
   "START_FAILED": "Server failed to start. Check the listener configuration.",
   "SERVER_ERROR": "The server encountered an error and stopped listening.",
+  "updateEntryHelp": "Check for new versions, read release notes, and choose the next action.",
   "updates": "Application updates",
   "currentVersion": "Current version {{version}}",
   "updateDemo": "Local demo",

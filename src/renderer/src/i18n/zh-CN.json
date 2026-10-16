@@ -159,6 +159,7 @@
   "BIND_DENIED": "没有权限监听此端口，请使用其他端口。",
   "START_FAILED": "服务启动失败，请检查监听配置。",
   "SERVER_ERROR": "仿真服务发生异常，监听已停止。",
+  "updateEntryHelp": "检查新版本、查看更新说明并选择后续操作。",
   "updates": "应用更新",
   "currentVersion": "当前版本 {{version}}",
   "updateDemo": "本地演示",

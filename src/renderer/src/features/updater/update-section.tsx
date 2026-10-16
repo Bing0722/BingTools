@@ -1,42 +1,13 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Download, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
-import { useNotifications } from '@/stores/notification-store'
-import type { UpdateSnapshot } from '../../../../shared/contracts/updater'
-import type { Result } from '../../../../shared/contracts/app-api'
+import { useUpdates, runUpdate as run } from '@/stores/update-store'
 export function UpdateSection() {
   const { t } = useTranslation()
-  const [snapshot, setSnapshot] = useState<UpdateSnapshot>()
-  const [error, setError] = useState<string>()
-  const [pending, setPending] = useState(false)
+  const { snapshot, error, pending } = useUpdates()
   const [confirm, setConfirm] = useState(false)
-  function apply(value: UpdateSnapshot) { setSnapshot((current) => !current || value.revision >= current.revision ? value : current) }
-  useEffect(() => {
-    let alive = true
-    const unsubscribe = window.app.updater.onEvent((value) => { if (alive) apply(value) })
-    void window.app.updater.getSnapshot().then((result) => {
-      if (!alive) return
-      if (result.ok) apply(result.data)
-      else setError(result.error.code)
-    }).catch(() => { if (alive) setError('UPDATE_CONNECTION_FAILED') })
-    return () => { alive = false; unsubscribe() }
-  }, [])
-  async function run(operation: () => Promise<Result<UpdateSnapshot>>) {
-    if (pending) return
-    setPending(true); setError(undefined)
-    try {
-      const result = await operation()
-      if (!result.ok) throw new Error(result.error.code)
-      apply(result.data)
-      if (result.data.error) throw new Error(result.data.error)
-      if (['available', 'current', 'downloaded'].includes(result.data.phase)) useNotifications.getState().push(result.data.mode === 'demo' ? result.data.phase === 'downloaded' ? 'updateDemoComplete' : 'updateDemoAvailable' : `update_${result.data.phase}`, 'info', result.data.mode === 'github' && result.data.phase !== 'current')
-    } catch (failure) {
-      const code = failure instanceof Error && /^UPDATE_[A-Z_]+$/.test(failure.message) ? failure.message : 'UPDATE_CONNECTION_FAILED'
-      setError(code); useNotifications.getState().push(code, 'error')
-    } finally { setPending(false) }
-  }
   const busy = pending || !!snapshot && ['checking','downloading','installing'].includes(snapshot.phase)
   return <section className="settings-section update-section" aria-label={t('updates')}>
     <h2>{t('updates')}</h2>

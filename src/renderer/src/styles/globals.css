@@ -178,7 +178,16 @@ textarea { resize:vertical; }
 .log-detail small { color:var(--tone-amber-fg); }
 .log-detail pre { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--sidebar); padding:10px; border-radius:6px; max-height:180px; overflow:auto; font:11px/1.7 ui-monospace,monospace; }
 /* 通知中心保留重要事件；轻提示最多同时显示三条。 */
-.notification-trigger { position:relative; margin-left:auto; }
+.header-actions { display:flex; align-items:center; gap:6px; margin-left:auto; }
+.notification-trigger { position:relative; }
+.update-trigger { position:relative; }
+.update-dot { position:absolute; top:3px; right:3px; width:7px; height:7px; border-radius:50%; background:var(--danger); box-shadow:0 0 0 2px var(--background); animation:content-enter var(--motion-panel) var(--motion-ease); }
+.update-checking-icon { animation:update-spin 1s linear infinite; }
+@keyframes update-spin { to { transform:rotate(360deg); } }
+.update-dialog { max-height:85vh; overflow-y:auto; }
+.update-dialog .update-section { border:0; padding:0; }
+.update-dialog .update-section > h2 { display:none; }
+@media (prefers-reduced-motion:reduce) { .update-checking-icon,.update-dot { animation:none; } }
 .notification-count { position:absolute; right:-5px; top:-3px; background:var(--accent); color:var(--accent-foreground); border-radius:10px; font-size:9px; min-width:14px; padding:0 3px; }
 .notification-actions { display:flex; justify-content:space-between; margin:18px 0 8px; }
 .notification-list { max-height:50vh; overflow:auto; }

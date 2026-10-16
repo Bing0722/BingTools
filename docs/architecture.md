@@ -97,7 +97,7 @@ LogBuffer 最多 1000 条，预览分别最多 8 KiB、UTF-8 边界安全、敏�
 
 `services/update-controller.ts` 是可注入后端的更新状态机，`demoBackend` 为默认无网络演示；`github-updater.ts` 包装 electron-updater，仅配置仓库且打包后启用。仓库取构建时 `release.config.json` 或 `BINGTOOLS_UPDATE_REPOSITORY`，不保存用户级更新源或 Token。
 
-固定 `updater:*` IPC 复用来源检查，订阅返回清理函数，快照包含 revision。设置页 UpdateSection 保留展示副本；更新状态在主进程，切换页面不会取消后台动作。真实安装前调用已有 shutdown，安装失败恢复应用生命周期。远端已接入公开 Bing0722/BingTools，版本由构建统一注入，GitHub 更新说明以文本显示；未签名 macOS 限制为手动下载。详细边界与未验证事项见 [应用更新](updates.md)。
+固定 `updater:*` IPC 复用来源检查，订阅返回清理函数，快照包含 revision。共享 update-store 保留展示副本；更新状态在主进程，切换页面不会取消后台动作。真实安装前调用已有 shutdown，安装失败恢复应用生命周期。远端已接入公开 Bing0722/BingTools，版本由构建统一注入，GitHub 更新说明以文本显示；未签名 macOS 限制为手动下载。详细边界与未验证事项见 [应用更新](updates.md)。
 
 ## 窗口标题栏与侧栏动效
 
@@ -143,3 +143,5 @@ SerialFramer 处理结束符、定长和空闲间隔，缓存上限 64 KiB；超
 串口包保留为 Vite 主进程外部依赖，pnpm 仅允许所需 bindings-cpp 安装脚本。该模块使用 Node-API 预构建原生文件，当前保持 npmRebuild:false；electron-builder 收集依赖并解包原生文件。平台验收以实际打包和启动结果为准。参考：[SerialPort 核心包说明](https://serialport.io/docs/next/api-core-overview/)。
 
 接收匹配按 receiveSuffix/ignoreTailBytes 参数组合分组建立字节索引；每帧对各组先剥除一次实际存在的尾符，再截掉固定尾部字节。过度截断不匹配，多组同时命中不回复并记录 MOTION_AMBIGUOUS。预处理不修改原始日志帧或发送数据。
+
+标题栏与设置页使用同一个 update-store 展示副本，由 Providers 单次订阅和清理更新事件，以 revision 防止旧快照覆盖；共享 pending 防止并发操作。标题栏点击在空闲且尚无可用版本时检查，其余状态直接打开更新面板。
