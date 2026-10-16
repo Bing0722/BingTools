@@ -214,3 +214,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm lint`、`pnpm build`（含类型检查）、`pnpm test`（48 项）及版本说明校验通过；保留已知上游 Zod 注释和 chunk 大小警告。
 - `pnpm exec node scripts/log-view-smoke.mjs` 真实 macOS Electron 验证通过：HTTP → 运控 → 设置来回切换，分别保留收起／展开、搜索、级别／方向和暂停状态，收起高度 43px；模拟 100 条串口日志后暂停浏览，返回页面恢复 scrollTop 640；重载 renderer 后回到默认状态。
 - 测试使用独立临时数据，不连接串口硬件。未打包、未发布，Windows 实机未验证。
+
+### 0.4.5 GitHub 正式发布
+
+- [v0.4.5 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/38858057415) 成功。Windows 2022 x64 与 macOS 14 ARM64 均通过在线依赖安装、类型检查、Lint、48 项测试、版本说明校验和原生打包；发布作业随后成功。
+- [v0.4.5 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.4.5) 已成为最新稳定版本，发布说明汇总自 0.3.1 以来的改动；包含 Windows EXE、macOS DMG/ZIP、对应 blockmap 和两份更新元数据，共 8 个资产。
+- 公开读取 `latest.yml` 与 `latest-mac.yml`，确认版本 0.4.5、对应资产名、SHA-512 和本次升级说明。Windows 从旧版本安装升级、真实 COM/串口硬件收发与长时间压力运行仍未验收；macOS 未签名、未公证，需手动下载更新。
