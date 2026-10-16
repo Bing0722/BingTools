@@ -208,3 +208,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm lint`、`pnpm build`（含类型检查）、`pnpm test`（48 项）、`pnpm exec node scripts/validate-release.mjs` 通过。构建保留上游 Zod 注释和 chunk 大小警告。
 - `pnpm exec node scripts/update-header-smoke.mjs` 通过：隔离数据的真实 macOS Electron，模拟更新 IPC 覆盖点击检查、红点、设置页同步、旧快照防覆盖、无更新清除、Esc 焦点恢复、中英文、深色窄窗；截图 `test-results/update-header.png`。模拟不连接 GitHub、不下载或安装。
 - 本轮未打包、未发布；Windows 实机、真实更新下载及安装未验证。
+
+## 2026-10-16 · 0.4.5 日志视图状态
+
+- `pnpm lint`、`pnpm build`（含类型检查）、`pnpm test`（48 项）及版本说明校验通过；保留已知上游 Zod 注释和 chunk 大小警告。
+- `pnpm exec node scripts/log-view-smoke.mjs` 真实 macOS Electron 验证通过：HTTP → 运控 → 设置来回切换，分别保留收起／展开、搜索、级别／方向和暂停状态，收起高度 43px；模拟 100 条串口日志后暂停浏览，返回页面恢复 scrollTop 640；重载 renderer 后回到默认状态。
+- 测试使用独立临时数据，不连接串口硬件。未打包、未发布，Windows 实机未验证。
