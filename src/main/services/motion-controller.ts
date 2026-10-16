@@ -2,10 +2,10 @@ import { randomUUID } from 'node:crypto'
 import { SerialPort } from 'serialport'
 import { JsonRepository } from '../storage/json-repository'
 import { SerialFramer } from './serial-framer'
-import { defaultMotionConfig, motionConfigSchema, SERIAL_LOG_LIMIT, type MotionCommand, type MotionConfig, type MotionCustomer, type MotionEvent, type MotionLog, type MotionRule, type MotionSnapshot, type MotionState, type SerialSettings } from '../../shared/schemas/motion'
+import { defaultMotionConfig, motionConfigSchema, parseMotionConfig, SERIAL_LOG_LIMIT, type MotionCommand, type MotionConfig, type MotionCustomer, type MotionEvent, type MotionLog, type MotionRule, type MotionSnapshot, type MotionState, type SerialSettings } from '../../shared/schemas/motion'
 
 export class MotionRepository extends JsonRepository<MotionConfig> {
-  constructor(path: string) { super(path, defaultMotionConfig, (value) => motionConfigSchema.parse(value)) }
+  constructor(path: string) { super(path, defaultMotionConfig, parseMotionConfig) }
 }
 export type MotionPort = Pick<SerialPort, 'on' | 'open' | 'close' | 'write' | 'drain' | 'isOpen' | 'destroy'>
 export interface SerialDriver { list: typeof SerialPort.list; create: (settings: SerialSettings) => MotionPort }
@@ -15,13 +15,20 @@ function serialError(error: unknown): string {
   const code = (error as NodeJS.ErrnoException)?.code
   return code === 'EACCES' || code === 'EPERM' ? 'MOTION_PERMISSION' : code === 'EBUSY' ? 'MOTION_PORT_BUSY' : code === 'ENOENT' ? 'MOTION_PORT_MISSING' : 'MOTION_SERIAL_ERROR'
 }
+/** 先去掉一次指定后缀（若存在），再按字节忽略尾部校验字段，禁止过度截断。 */
+export function normalizeReceive(frame: Buffer, suffix: Buffer, ignore: number): Buffer | null {
+  let value = frame
+  if (suffix.length && value.length >= suffix.length && value.subarray(-suffix.length).equals(suffix)) value = value.subarray(0, -suffix.length)
+  if (ignore >= value.length) return null
+  return ignore ? value.subarray(0, -ignore) : value
+}
 export class MotionController {
   private revision = 0
   private phase: MotionState['phase'] = 'stopped'
   private customerId: string | null = null
   private error?: string
   private activeCustomer?: MotionCustomer
-  private matches = new Map<string, MotionRule>()
+  private matches: { suffix: Buffer; ignore: number; rules: Map<string, MotionRule> }[] = []
   private port?: MotionPort
   private framer?: SerialFramer
   private queue = Promise.resolve()
@@ -111,7 +118,15 @@ export class MotionController {
   private setActive(customer?: MotionCustomer) {
     // 配置成功落盘后才重建索引；每帧不复制完整客户配置或重新编码全部规则。
     this.activeCustomer = customer
-    this.matches = new Map(customer?.rules.filter((r) => r.enabled).map((r) => [payload(r, 'receive').toString('hex'), r]) ?? [])
+    const groups = new Map<string, { suffix: Buffer; ignore: number; rules: Map<string, MotionRule> }>()
+    for (const rule of customer?.rules ?? []) {
+      if (!rule.enabled) continue
+      const key = `${rule.receiveSuffix.toUpperCase()}:${rule.ignoreTailBytes}`
+      let group = groups.get(key)
+      if (!group) { group = { suffix: Buffer.from(rule.receiveSuffix, 'hex'), ignore: rule.ignoreTailBytes, rules: new Map() }; groups.set(key, group) }
+      group.rules.set(payload(rule, 'receive').toString('hex'), rule)
+    }
+    this.matches = [...groups.values()]
   }
   private async start(customer: MotionCustomer) {
     if (this.port) throw new Error('STOP_FIRST')
@@ -125,7 +140,14 @@ export class MotionController {
     this.framer = new SerialFramer(customer.serial, (frame) => {
       if (this.port !== port || this.phase !== 'running') return
       const current = this.activeCustomer
-      const rule = this.matches.get(frame.toString('hex'))
+      // 按预处理参数分组匹配，保留原始帧用于日志；不修改发送内容。
+      const candidates = this.matches.flatMap((group) => {
+        const normalized = normalizeReceive(frame, group.suffix, group.ignore)
+        const match = normalized && group.rules.get(normalized.toString('hex'))
+        return match ? [match] : []
+      })
+      if (candidates.length > 1) { this.log('rx', 'MOTION_AMBIGUOUS', frame, undefined, 'error'); return }
+      const rule = candidates[0]
       this.log('rx', rule ? 'MOTION_MATCHED' : 'MOTION_UNMATCHED', frame, rule?.name)
       if (current && rule) void this.send(rule, current).catch(() => {})
     }, () => this.log('event', 'MOTION_FRAME_TOO_LARGE', undefined, undefined, 'error'))

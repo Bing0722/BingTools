@@ -20,7 +20,7 @@ async function fixture() {
   cleanups.push(async () => { await controller.shutdown(); await rm(directory, { recursive: true, force: true }) })
   const customer = { id: randomUUID(), name: 'Motion A', serial: { ...defaultSerial, path: device } }
   await controller.execute({ type: 'saveCustomer', customer })
-  const rule: MotionRule = { id: randomUUID(), name: 'Position', format: 'text', receive: 'POS?', response: '100', enabled: true, appendDelimiter: true }
+  const rule: MotionRule = { id: randomUUID(), name: 'Position', format: 'text', receive: 'POS?', response: '100', enabled: true, appendDelimiter: true, receiveSuffix: '', ignoreTailBytes: 0 }
   await controller.execute({ type: 'saveRule', customerId: customer.id, rule })
   return { controller, repository, customer, rule, path, getPort: () => port! }
 }
@@ -117,4 +117,39 @@ it('handles messages every 200 ms without losing replies', async () => {
   expect(controller.snapshot().logs.filter((v) => v.direction === 'tx')).toHaveLength(10)
   expect(events.filter((v) => v.type === 'logs').length).toBeLessThanOrEqual(11)
   unsubscribe()
+})
+it('strips CR and checksum bytes only for matching, keeps original logs and hot updates', async () => {
+  const { controller, customer, rule, getPort } = await fixture()
+  await controller.execute({ type: 'saveRule', customerId: customer.id, rule: { ...rule, receiveSuffix: '0D', ignoreTailBytes: 1 } })
+  await controller.execute({ type: 'start', customerId: customer.id })
+  const binding = getPort().port!
+  binding.emitData(Buffer.from('POS?X\r\n'))
+  await vi.waitFor(() => expect(binding.recording.toString()).toBe('100\n'))
+  expect(controller.snapshot().logs.find((v) => v.direction === 'rx')?.hex).toBe('504F533F580D')
+  await controller.execute({ type: 'saveRule', customerId: customer.id, rule: { ...rule, receiveSuffix: '0D', ignoreTailBytes: 0 } })
+  binding.emitData(Buffer.from('POS?\r\nPOS?\n'))
+  await vi.waitFor(() => expect(binding.recording.toString()).toBe('100\n'.repeat(3)))
+  binding.emitData(Buffer.from('POS?X\r\n'))
+  await vi.waitFor(() => expect(controller.snapshot().logs.at(-1)?.code).toBe('MOTION_UNMATCHED'))
+})
+it('preserves legacy rules and validates tail options', async () => {
+  const { parseMotionConfig } = await import('../src/shared/schemas/motion')
+  const { normalizeReceive } = await import('../src/main/services/motion-controller')
+  const { controller, customer, rule } = await fixture()
+  const old = { ...controller.snapshot().config, schemaVersion: 1, customers: [{ ...customer, rules: [{ id: rule.id, name: rule.name, enabled: true, format: 'text', receive: 'POS?', response: 'OK', appendDelimiter: true }] }] }
+  const migrated = parseMotionConfig(old)
+  expect(migrated.schemaVersion).toBe(2)
+  expect(migrated.customers[0].rules[0]).toMatchObject({ receiveSuffix: '', ignoreTailBytes: 0, receive: 'POS?' })
+  for (const change of [{ receiveSuffix: 'D' }, { ignoreTailBytes: -1 }, { ignoreTailBytes: 257 }, { ignoreTailBytes: 1.5 }]) expect(motionCommandSchema.safeParse({ type: 'saveRule', customerId: customer.id, rule: { ...rule, ...change } }).success).toBe(false)
+  expect(normalizeReceive(Buffer.from('A\r'), Buffer.from('0D', 'hex'), 1)).toBeNull()
+  expect(normalizeReceive(Buffer.from('A\r\r'), Buffer.from('0D', 'hex'), 0)?.toString()).toBe('A\r')
+  expect(normalizeReceive(Buffer.from('A '), Buffer.from('0D', 'hex'), 0)?.toString()).toBe('A ')
+})
+it('does not reply when different preprocessing rules produce ambiguous matches', async () => {
+  const { controller, customer, rule, getPort } = await fixture()
+  await controller.execute({ type: 'saveRule', customerId: customer.id, rule: { ...rule, id: randomUUID(), name: 'Short', receive: 'POS', ignoreTailBytes: 1 } })
+  await controller.execute({ type: 'start', customerId: customer.id })
+  getPort().port!.emitData(Buffer.from('POS?\n'))
+  await vi.waitFor(() => expect(controller.snapshot().logs.at(-1)?.code).toBe('MOTION_AMBIGUOUS'))
+  expect(getPort().port!.recording.length).toBe(0)
 })

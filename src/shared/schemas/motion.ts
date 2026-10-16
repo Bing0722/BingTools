@@ -21,11 +21,13 @@ export const motionRuleSchema = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(100), enabled: z.boolean(),
   format: z.enum(['text', 'hex']), receive: z.string().min(1).max(SERIAL_FRAME_LIMIT * 3),
   response: z.string().max(SERIAL_FRAME_LIMIT * 3), appendDelimiter: z.boolean(),
+  receiveSuffix: z.string().regex(/^(?:[0-9a-fA-F]{2}){0,16}$/).default(''),
+  ignoreTailBytes: z.number().int().min(0).max(256).default(0),
 }).strict().refine((v) => validSerialPayload(v.receive, v.format) && validSerialPayload(v.response, v.format) && (v.format !== 'hex' || v.receive.replace(/\s/g, '').length > 0), { message: 'MOTION_INVALID_PAYLOAD' })
 export const motionCustomerInputSchema = z.object({ id: z.string().uuid(), name: z.string().trim().min(1).max(100), serial: serialSettingsSchema }).strict()
 export const motionCustomerSchema = motionCustomerInputSchema.extend({ rules: z.array(motionRuleSchema).max(500) }).strict()
-export const motionConfigSchema = z.object({ schemaVersion: z.literal(1), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(motionCustomerSchema).max(100) }).strict()
-export const defaultMotionConfig: MotionConfig = { schemaVersion: 1, selectedCustomerId: null, customers: [] }
+export const motionConfigSchema = z.object({ schemaVersion: z.literal(2), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(motionCustomerSchema).max(100) }).strict()
+export const defaultMotionConfig: MotionConfig = { schemaVersion: 2, selectedCustomerId: null, customers: [] }
 export const motionCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('saveCustomer'), customer: motionCustomerInputSchema, sourceId: z.string().uuid().optional() }).strict(),
   z.object({ type: z.literal('selectCustomer'), customerId: z.string().uuid() }).strict(),
@@ -49,3 +51,12 @@ export interface MotionLog { id: number; time: number; customerId: string | null
 export interface MotionState { revision: number; config: MotionConfig; phase: 'stopped' | 'starting' | 'running' | 'stopping' | 'failed'; customerId: string | null; error?: string; warning?: string }
 export interface MotionSnapshot extends MotionState { logs: MotionLog[] }
 export type MotionEvent = { type: 'state'; state: MotionState } | { type: 'logs'; entries: MotionLog[] } | { type: 'clear'; customerId: string | null; throughId: number }
+
+/** 旧规则不做接收预处理，显式迁移后保持原有匹配行为。 */
+export function parseMotionConfig(value: unknown): MotionConfig {
+  if (typeof value === 'object' && value && 'schemaVersion' in value && value.schemaVersion === 1) {
+    const old = motionConfigSchema.extend({ schemaVersion: z.literal(1) }).parse(value)
+    return motionConfigSchema.parse({ ...old, schemaVersion: 2 })
+  }
+  return motionConfigSchema.parse(value)
+}

@@ -262,7 +262,7 @@
   "motion_rx": "RX",
   "motion_tx": "TX",
   "motion_event": "Event",
-  "MOTION_INVALID_PAYLOAD": "Enter a rule name and received content. HEX requires complete bytes. Payload limit: 64 KiB.",
+  "MOTION_INVALID_PAYLOAD": "Enter a rule name and received content. HEX requires complete bytes. Payload limit: 64 KiB. Suffix must be complete HEX bytes; ignored byte count must be 0–256.",
   "MOTION_PERMISSION": "Serial port access denied. Check system permissions.",
   "MOTION_PORT_BUSY": "The serial port is in use.",
   "MOTION_PORT_MISSING": "Serial port missing or not selected. Refresh and select an available port.",
@@ -279,5 +279,9 @@
   "MOTION_WRITE_TIMEOUT": "Serial write timed out. Connection stopped.",
   "MOTION_SENT": "Sent",
   "MOTION_SEND_FAILED": "Serial send failed. Check the connection.",
-  "MOTION_STOPPED": "Serial port closed"
+  "MOTION_STOPPED": "Serial port closed",
+  "motionReceiveSuffix": "Remove trailing suffix before matching (HEX, optional)",
+  "motionIgnoreTail": "Then ignore trailing bytes",
+  "motionReceiveProcessingHelp": "After framing, remove the specified suffix once if present, then ignore 0–256 trailing bytes. Use 0D for CR. This skips checksum bytes without validating CRC. Logs retain the frame before preprocessing.",
+  "MOTION_AMBIGUOUS": "Multiple rules matched after tail processing. No reply sent; adjust the rules."
 }

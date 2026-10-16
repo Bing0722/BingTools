@@ -262,7 +262,7 @@
   "motion_rx": "接收",
   "motion_tx": "发送",
   "motion_event": "事件",
-  "MOTION_INVALID_PAYLOAD": "请填写接口名称和接收内容；HEX 必须为完整字节，内容最多 64 KiB。",
+  "MOTION_INVALID_PAYLOAD": "请填写接口名称和接收内容；HEX 必须为完整字节，内容最多 64 KiB。 尾符须填写完整 HEX 字节，忽略字节数为 0–256。",
   "MOTION_PERMISSION": "无权限访问串口，请检查系统权限。",
   "MOTION_PORT_BUSY": "串口已被其他程序占用。",
   "MOTION_PORT_MISSING": "串口不存在或未选择，请刷新并选择可用串口。",
@@ -279,5 +279,9 @@
   "MOTION_WRITE_TIMEOUT": "串口发送超时，连接已停止。",
   "MOTION_SENT": "发送完成",
   "MOTION_SEND_FAILED": "串口发送失败，请检查连接。",
-  "MOTION_STOPPED": "串口已断开"
+  "MOTION_STOPPED": "串口已断开",
+  "motionReceiveSuffix": "匹配前移除尾符（HEX，可留空）",
+  "motionIgnoreTail": "随后忽略末尾字节数",
+  "motionReceiveProcessingHelp": "先按客户设置分包，再移除一次指定尾符（若存在），最后忽略末尾 0–256 字节。回车填 0D；如校验字节在回车前，先去回车再忽略校验字节。不计算或验证 CRC，日志保留预处理前的帧。",
+  "MOTION_AMBIGUOUS": "多条规则经尾部处理后同时匹配，未自动回复；请调整规则。"
 }

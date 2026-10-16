@@ -326,3 +326,6 @@ textarea { resize:vertical; }
 .motion-page .log-controls > input { width:130px; }
 
 .motion-form > label:not(.field) { display:flex; align-items:center; gap:8px; }
+
+/* 运控接口区填满剩余高度，日志收起后始终贴住窗口底部。 */
+.motion-page > .endpoint-board { flex:1; }

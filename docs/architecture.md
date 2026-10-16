@@ -134,10 +134,12 @@ SimulatorPage 的接口 draft 只在编辑弹窗打开时存在；新增、编�
 
 `shared/schemas/motion.ts` 定义严格命令、客户/规则/串口参数与事件；`motion:*` IPC 复用窗口来源校验。preload 仅暴露快照、枚举、有限业务命令和返回取消函数的事件订阅。主进程只允许打开系统枚举到的端口，拒绝任意文件路径。
 
-`MotionController` 使用 serialport 13.0.0，驱动可注入用于 Mock 测试。客户与规则存入版本 1 的 motion.json，复用 JsonRepository 的串行原子写入和损坏备份；持久化成功才更新活动客户与接收字节索引。HTTP/串口彼此独立，共用窗口关闭与退出清理。
+`MotionController` 使用 serialport 13.0.0，驱动可注入用于 Mock 测试。客户与规则存入版本 2 的 motion.json（v1 自动补齐空尾符与 0 忽略字节，保持行为），复用 JsonRepository 的串行原子写入和损坏备份；持久化成功才更新活动客户与接收字节索引。HTTP/串口彼此独立，共用窗口关闭与退出清理。
 
 SerialFramer 处理结束符、定长和空闲间隔，缓存上限 64 KiB；超长帧丢弃到下一边界，避免尾片误匹配。匹配索引只在配置变化时构建，接收时不复制全部配置。串口写入串行，最多排队 100 项，写入/打开/关闭有 3 秒超时保护，旧连接数据不会进入新连接。退出清除分包与日志定时器。
 
 日志与配置状态事件分离，100ms 批量推送；主进程、待推送批次和 renderer 历史都有 2000 条上限，每条文本/HEX预览只保留前 2 KiB。递增日志 ID 用于初始化订阅去重与清空边界；配置 revision 避免旧快照覆盖新状态。MotionLogs 使用独立 Zustand 选择器、32px 固定行高虚拟列表，日志更新不重绘配置表单。
 
 串口包保留为 Vite 主进程外部依赖，pnpm 仅允许所需 bindings-cpp 安装脚本。该模块使用 Node-API 预构建原生文件，当前保持 npmRebuild:false；electron-builder 收集依赖并解包原生文件。平台验收以实际打包和启动结果为准。参考：[SerialPort 核心包说明](https://serialport.io/docs/next/api-core-overview/)。
+
+接收匹配按 receiveSuffix/ignoreTailBytes 参数组合分组建立字节索引；每帧对各组先剥除一次实际存在的尾符，再截掉固定尾部字节。过度截断不匹配，多组同时命中不回复并记录 MOTION_AMBIGUOUS。预处理不修改原始日志帧或发送数据。

@@ -187,3 +187,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 
 - 2026-10-16（北京时间）[main 构建](https://github.com/Bing0722/BingTools/actions/runs/38765182129) 成功。Windows 2022 x64 与 macOS 14 ARM64 均完成在线依赖安装、类型检查、Lint、45 项测试、版本说明校验和原生打包。
 - Actions 已上传 `BingTools-win-x64` 与 `BingTools-mac-arm64` 产物；没有推送 `v0.4.1` 标签，也没有创建正式 Release。Windows 界面与串口硬件仍未实机验收。
+
+## 2026-10-16：0.4.2 运控日志收起与接收尾部处理
+
+- 修复运控接口区没有 flex:1 导致日志收起后空白留在下方；日志收起至 43px 并贴底，接口区填补剩余空间。展开动画结束后按暂停状态恢复跟随滚动。
+- 接口新增 receiveSuffix（可选 HEX 尾符）与 ignoreTailBytes（0–256），按分包→去一次存在的尾符→忽略固定尾字节→精确匹配顺序执行；不验证 CRC，不修改发送数据或原始帧日志。多组同时匹配时记录歧义且不回复。
+- motion.json 升级至 v2；v1 迁移补空尾符和 0 忽略字节，保持原有行为。按处理参数分组建立匹配索引，保留有界日志和批量刷新。
+- 类型检查、Lint、48 项测试、生产构建和版本说明校验通过。新增覆盖 CR/校验字节剥除、运行中更新、原始日志保留、迁移默认值、非法参数、过度截断和歧义不回复。
+- macOS Electron 桌面流程通过，新增宽窗与 800×560 窄窗收起高度/底部位置/接口区域边界检查，验证尾部配置保存及重启恢复。未连接真实设备；本轮未修改串口依赖，未重新打包、验证 Windows 实机或发布。构建仍有既有 Zod 注释与包体积提示。

@@ -15,6 +15,16 @@ try {
   page.on('pageerror', (error) => errors.push(error.message))
   await page.getByRole('link', { name: '运控仿真', exact: true }).click()
   await page.getByRole('heading', { name: '运控仿真', exact: true }).waitFor()
+  // 日志收起须贴住窗口底部，接口区域自动填补释放的高度。
+  const checkCollapse = async () => {
+    await page.getByRole('button', { name: '收起日志', exact: true }).click()
+    await page.waitForFunction(() => Math.abs(document.querySelector('.log-panel').getBoundingClientRect().height - 43) < 1)
+    assert.equal(await page.locator('.log-panel').evaluate((v) => Math.abs(v.getBoundingClientRect().bottom - innerHeight) < 1), true)
+    assert.equal(await page.locator('.endpoint-board').evaluate((v) => Math.abs(v.getBoundingClientRect().bottom - document.querySelector('.log-panel').getBoundingClientRect().top) < 1), true)
+    await page.getByRole('button', { name: '展开日志', exact: true }).click()
+    await page.waitForFunction(() => document.querySelector('.log-panel').getBoundingClientRect().height > 80)
+  }
+  await checkCollapse()
   const ports = await page.evaluate(() => window.app.motion.listPorts())
   assert.equal(ports.ok, true)
   await page.getByRole('button', { name: '新增客户', exact: true }).click()
@@ -27,6 +37,8 @@ try {
     await page.getByLabel('接口名称', { exact: true }).fill(name)
     await page.getByLabel('收到的内容', { exact: true }).fill(receive)
     await page.getByLabel('回复 / 手动发送内容', { exact: true }).fill(response)
+    await page.getByLabel('匹配前移除尾符（HEX，可留空）', { exact: true }).fill('0D')
+    await page.getByLabel('随后忽略末尾字节数', { exact: true }).fill('1')
     await page.getByRole('button', { name: '保存接口', exact: true }).click()
     await page.getByRole('dialog').waitFor({ state: 'hidden' })
   }
@@ -54,10 +66,13 @@ try {
   await page.keyboard.press('Escape')
   await page.locator('.motion-dialog').waitFor({ state: 'hidden' })
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(800,560))
+  await checkCollapse()
   await page.screenshot({ path: 'test-results/motion-narrow.png', animations: 'disabled' })
   assert.equal(await page.locator('.log-panel').evaluate((v) => v.getBoundingClientRect().bottom <= innerHeight + 1), true)
   const snapshot = await page.evaluate(() => window.app.motion.getSnapshot())
   assert.equal(snapshot.data.config.customers[0].serial.baudRate, 115200)
+  assert.equal(snapshot.data.config.customers[0].rules[0].receiveSuffix, '0D')
+  assert.equal(snapshot.data.config.customers[0].rules[0].ignoreTailBytes, 1)
   assert.equal(snapshot.data.config.customers[0].rules[0].name, '回零')
   await application.close(); application = undefined
   application = await electron.launch({ ...(process.env.BINGTOOLS_EXECUTABLE ? { executablePath: process.env.BINGTOOLS_EXECUTABLE, args: [`--user-data-dir=${directory}`] } : { args: [resolve('.')] }), env })
