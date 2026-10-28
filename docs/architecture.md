@@ -75,7 +75,7 @@ src/renderer/src/
 
 `settings.json` schemaVersion 3 保存 theme、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1/v2 显式迁移，补右下角通知位置；v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
-`simulator.json` schemaVersion 1 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
+`simulator.json` schemaVersion 2 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
 日志与通知从不持久化。完整设置和客户数据会留在本机 userData，不进入 Git。
 
@@ -147,3 +147,12 @@ SerialFramer 处理结束符、定长和空闲间隔，缓存上限 64 KiB；超
 标题栏与设置页使用同一个 update-store 展示副本，由 Providers 单次订阅和清理更新事件，以 revision 防止旧快照覆盖；共享 pending 防止并发操作。标题栏点击在空闲且尚无可用版本时检查，其余状态直接打开更新面板。
 
 日志视图状态由 log-view-store 按 simulator/motion 两个固定键保存，仅存在 renderer 会话；不复制业务日志或路由。页面卸载时记录日志滚动位置，重新挂载时恢复；自动跟随仍由各面板负责。详情弹窗和编辑草稿继续留在局部，不因返回页面自动重开。订阅和虚拟列表仍按原生命周期清理，不缓存整个页面 DOM。
+
+
+## TCP 服务器
+
+SimulatorController 使用同一串行命令、日志和 IPC，根据客户 protocol 创建 HttpSimulator 或 TcpSimulator；后者只在 main 使用 node:net。保留先落盘再热更新、退出停止和端口释放。共享 schema 校验 TCP HEX 结束符（1–16 字节）、JSON 字段路径或文本分隔符／索引；simulator.json v1 显式迁移至 v2，旧 HTTP 数据不改写语义。
+
+每连接独立按结束符分帧并限长 1 MiB；结束符被剥除后按 UTF-8 严格解码，JSON 属性只读取 own property，拒绝原型相关路径。提取字符串或数字后按大小写敏感的接口 name 匹配，不执行正则或脚本。HTTP 仍按 method＋path 判重，TCP 按 name 判重；转换协议时须满足目标协议的唯一性要求。格式错误及未匹配不写回协议数据。
+
+连接最多 64，空闲 60 秒释放，待写缓冲约 2 MiB，停服先 end、最多 3 秒后 destroy。JSON 回复移除字符串外空白，保留数字字面量；日志显示 TCP、提取值和限长正文预览，发送日志表示已提交 socket.write，不表示对端确认接收。renderer 不新增网络特权。

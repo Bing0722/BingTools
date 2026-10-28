@@ -220,3 +220,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [v0.4.5 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/38858057415) 成功。Windows 2022 x64 与 macOS 14 ARM64 均通过在线依赖安装、类型检查、Lint、48 项测试、版本说明校验和原生打包；发布作业随后成功。
 - [v0.4.5 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.4.5) 已成为最新稳定版本，发布说明汇总自 0.3.1 以来的改动；包含 Windows EXE、macOS DMG/ZIP、对应 blockmap 和两份更新元数据，共 8 个资产。
 - 公开读取 `latest.yml` 与 `latest-mac.yml`，确认版本 0.4.5、对应资产名、SHA-512 和本次升级说明。Windows 从旧版本安装升级、真实 COM/串口硬件收发与长时间压力运行仍未验收；macOS 未签名、未公证，需手动下载更新。
+
+## 2026-10-28 · 0.5.0 TCP 服务器仿真
+
+- `pnpm build`（含类型检查）、`pnpm lint`、`pnpm test`（8 文件、54 项）及版本说明校验通过。保持已知 Zod 注释与 renderer chunk 大小警告。
+- 新增真实本机 TCP 测试：JSON 嵌套字段、文本分隔提取、拆包粘包、多连接独立缓存、开关及热更新、无效消息／缺失字段、1 MiB 超限断开、端口冲突、停服释放、日志截断、配置迁移／恢复、重名拒绝、磁盘失败不改变运行回复；JSON 紧凑回复保留大整数。
+- `pnpm exec node scripts/tcp-smoke.mjs` 通过：真实 macOS Electron 新建 TCP 客户、配置接口、外部本机连接得到回复、关闭接口产生未匹配日志、停服、窄窗文本提取配置保存。截图 `test-results/tcp-settings.png`；实际截图检查后将原生复选框替换为统一开关。
+- `pnpm test:desktop` 原 HTTP 流程、主题、语言、日志、未保存保护、关闭／重开和重启回归通过，无 renderer 错误。
+- 未新增依赖、未打包或发布；Windows 实机、长时间大并发、真实设备协议未验证。TCP 日志表示已提交发送，不代表客户端已确认接收。

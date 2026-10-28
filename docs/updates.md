@@ -4,7 +4,7 @@
 
 公开仓库：[Bing0722/BingTools](https://github.com/Bing0722/BingTools)。更新源固定为该仓库的 GitHub Releases，客户端不包含 Token。`release.config.json` 指定仓库，开发态只显示更新源；安装后的应用可手动检查稳定版本。
 
-版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.4.5.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
+版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.5.0.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
 
 ## 自动构建
 
@@ -23,10 +23,10 @@
 
 ## 下一次发布
 
-1. 每轮功能改动在本地提交前主动升级 package.json：小改动补丁号、大功能次版本号、不兼容重大变更主版本号，不等待发布时才补版本。例如下一次小改动为 0.4.6。
-2. 新增 `docs/releases/0.4.6.md`，写明新增、修复和安装注意事项；更新 CHANGELOG.md。
+1. 每轮功能改动在本地提交前主动升级 package.json：小改动补丁号、大功能次版本号、不兼容重大变更主版本号，不等待发布时才补版本。例如下一次小改动为 0.5.1。
+2. 新增 `docs/releases/0.5.1.md`，写明新增、修复和安装注意事项；更新 CHANGELOG.md。
 3. 同步 README 当前版本和本文说明链接，执行检查、生产构建并本地提交；获得推送授权后再推送 main。
-4. 获得发布授权后创建并推送 `v0.4.6` 标签。Actions 成功后自动发布正式 Release。
+4. 获得发布授权后创建并推送 `v0.5.1` 标签。Actions 成功后自动发布正式 Release。
 
 只想本地生成包时运行 `pnpm package:release`，此命令使用 `--publish never`，不会上传。仅工作流标签触发的发布任务会上传并发布。
 

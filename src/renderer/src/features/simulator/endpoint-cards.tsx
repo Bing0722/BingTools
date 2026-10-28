@@ -5,7 +5,8 @@ import { Button } from '@/components/ui/button'
 import { useMedia } from '@/lib/use-media'
 import type { Endpoint } from '../../../../shared/schemas/simulator'
 
-export function EndpointCards({ endpoints, busy, pendingToggle, onAdd, onEdit, onToggle, onReorder }: {
+export function EndpointCards({ protocol = 'http', endpoints, busy, pendingToggle, onAdd, onEdit, onToggle, onReorder }: {
+  protocol?: 'http' | 'tcp'
   endpoints: Endpoint[]; busy: boolean; pendingToggle?: string
   onAdd: () => void; onEdit: (entry: Endpoint) => void; onToggle: (entry: Endpoint) => void
   onReorder: (ids: string[]) => Promise<boolean>
@@ -68,7 +69,7 @@ export function EndpointCards({ endpoints, busy, pendingToggle, onAdd, onEdit, o
       {cards.map((entry, index) => <article data-endpoint-id={entry.id} key={entry.id} className={`endpoint-card ${dragged === entry.id ? 'is-dragging' : ''} ${over === entry.id && dragged !== entry.id ? 'is-drop-target' : ''}`}
         onDragOver={(event) => { if (dragged && !busy) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setOver(entry.id) } }}
         onDrop={(event) => { event.preventDefault(); if (dragged) void move(dragged, entry.id); cancelDrag() }}>
-        <div className="endpoint-card-top"><span className={`method method-${entry.method.toLowerCase()}`}>{entry.method}</span><span className="badge">{entry.format === 'json' ? 'JSON' : t('text')} · {entry.status}</span>
+        <div className="endpoint-card-top"><span className={`method method-${entry.method.toLowerCase()}`}>{protocol === 'tcp' ? 'TCP' : entry.method}</span><span className="badge">{entry.format === 'json' ? 'JSON' : t('text')}{protocol !== 'tcp' && ` · ${entry.status}`}</span>
           <button type="button" className="card-grip" draggable={!busy && !preview} aria-disabled={busy} aria-label={t('moveEndpoint', { name: entry.name })} title={t('endpointCardsHelp')}
             onDragStart={(event) => {
               if (busy || saving.current) { event.preventDefault(); return }
@@ -85,7 +86,7 @@ export function EndpointCards({ endpoints, busy, pendingToggle, onAdd, onEdit, o
               const target = cards[index + (event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1)]
               if (target) void move(entry.id, target.id)
             }}><GripVertical size={17} /></button></div>
-        <button className="endpoint-card-open" onClick={() => onEdit(entry)} aria-label={t('editEndpointNamed', { name: entry.name })}><strong>{entry.name}</strong><code>{entry.path}</code></button>
+        <button className="endpoint-card-open" onClick={() => onEdit(entry)} aria-label={t('editEndpointNamed', { name: entry.name })}><strong>{entry.name}</strong><code>{protocol === 'tcp' ? entry.name : entry.path}</code></button>
         <div className="endpoint-card-footer"><button className="switch" role="switch" aria-disabled={busy} aria-busy={pendingToggle === entry.id} aria-label={t('enableEndpoint', { name: entry.name })} aria-checked={entry.enabled} onClick={() => { if (!busy && !saving.current) onToggle(entry) }}><span /></button><span>{t(entry.enabled ? 'enabled' : 'endpointDisabled')}</span><Button variant="ghost" size="sm" onClick={() => onEdit(entry)}><Pencil size={13} />{t('edit')}</Button></div>
       </article>)}
     </div>

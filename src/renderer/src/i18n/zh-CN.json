@@ -284,5 +284,20 @@
   "motionReceiveSuffix": "匹配前移除尾符（HEX，可留空）",
   "motionIgnoreTail": "随后忽略末尾字节数",
   "motionReceiveProcessingHelp": "先按客户设置分包，再移除一次指定尾符（若存在），最后忽略末尾 0–256 字节。回车填 0D；如校验字节在回车前，先去回车再忽略校验字节。不计算或验证 CRC，日志保留预处理前的帧。",
-  "MOTION_AMBIGUOUS": "多条规则经尾部处理后同时匹配，未自动回复；请调整规则。"
+  "MOTION_AMBIGUOUS": "多条规则经尾部处理后同时匹配，未自动回复；请调整规则。",
+  "tcpHelp": "按 HEX 结束符分包，默认 0A（换行），CRLF 使用 0D0A。JSON 必须在一帧中发送。",
+  "tcpDelimiter": "消息结束符（HEX）",
+  "tcpExtraction": "字段提取格式",
+  "tcpField": "接口字段路径（如 action 或 data.command）",
+  "tcpSeparator": "文本字段分隔符（空白表示整帧）",
+  "tcpIndex": "字段序号（从 0 开始）",
+  "tcpAppendDelimiter": "回复追加相同结束符",
+  "tcpEndpointHelp": "接口名称是精确匹配值。例如字段 action 为 getStatus 时，接口名称填写 getStatus。名称区分大小写且不可重复。",
+  "tcpResponseHint": "TCP 返回 UTF-8 内容，JSON 自动去除字符串外空白，没有 HTTP 状态码和头部。未匹配、关闭或格式错误的消息不回复，只记录日志。",
+  "TCP_DUPLICATE_NAME": "TCP 接口名称不可重复。",
+  "TCP_REQUEST": "TCP 消息已匹配并提交发送",
+  "TCP_FIELD_MISSING": "TCP 消息缺少有效接口字段",
+  "TCP_INVALID_MESSAGE": "TCP 消息不是有效的 UTF-8 或 JSON",
+  "TCP_CONNECTION_ERROR": "TCP 客户端连接异常",
+  "TCP_BACKPRESSURE": "TCP 待发送数据超限，连接已关闭"
 }

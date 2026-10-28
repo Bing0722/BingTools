@@ -284,5 +284,20 @@
   "motionReceiveSuffix": "Remove trailing suffix before matching (HEX, optional)",
   "motionIgnoreTail": "Then ignore trailing bytes",
   "motionReceiveProcessingHelp": "After framing, remove the specified suffix once if present, then ignore 0–256 trailing bytes. Use 0D for CR. This skips checksum bytes without validating CRC. Logs retain the frame before preprocessing.",
-  "MOTION_AMBIGUOUS": "Multiple rules matched after tail processing. No reply sent; adjust the rules."
+  "MOTION_AMBIGUOUS": "Multiple rules matched after tail processing. No reply sent; adjust the rules.",
+  "tcpHelp": "Frame messages using a HEX delimiter: 0A for LF, 0D0A for CRLF. Send each JSON document in a single frame.",
+  "tcpDelimiter": "Message delimiter (HEX)",
+  "tcpExtraction": "Field extraction format",
+  "tcpField": "Interface field path (action or data.command)",
+  "tcpSeparator": "Text field separator (empty for whole frame)",
+  "tcpIndex": "Field index (zero-based)",
+  "tcpAppendDelimiter": "Append the same delimiter to replies",
+  "tcpEndpointHelp": "The interface name is the exact match value. For action=getStatus, name the interface getStatus. Names are case-sensitive and must be unique.",
+  "tcpResponseHint": "TCP replies contain UTF-8 content without HTTP headers or status codes. JSON is compacted without changing string contents. Unmatched, disabled or invalid messages are logged without a reply.",
+  "TCP_DUPLICATE_NAME": "TCP interface names must be unique.",
+  "TCP_REQUEST": "TCP message matched and queued for sending",
+  "TCP_FIELD_MISSING": "TCP interface field is missing or invalid",
+  "TCP_INVALID_MESSAGE": "Invalid TCP UTF-8 or JSON message",
+  "TCP_CONNECTION_ERROR": "TCP client connection error",
+  "TCP_BACKPRESSURE": "TCP outgoing buffer exceeded its limit; connection closed"
 }

@@ -335,3 +335,7 @@ textarea { resize:vertical; }
 
 /* 运控接口区填满剩余高度，日志收起后始终贴住窗口底部。 */
 .motion-page > .endpoint-board { flex:1; }
+
+.tcp-settings { display:grid; gap:12px; animation:content-enter var(--motion-panel) var(--motion-ease); }
+.tcp-customer-dialog { max-height:90vh; overflow-y:auto; }
+@media (prefers-reduced-motion:reduce) { .tcp-settings { animation:none; } }

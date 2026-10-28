@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import type { SimulatorRepository } from '../storage/simulator-repository'
 import { simulatorCommandSchema, simulatorConfigSchema, customerNameKey, type SimulatorCommand } from '../../shared/schemas/simulator'
 import type { SimulatorEvent, SimulatorSnapshot } from '../../shared/contracts/simulator'
+import { TcpSimulator } from './tcp-simulator'
 import { HttpSimulator } from './http-simulator'
 import { LogBuffer } from './log-buffer'
 
@@ -12,15 +13,17 @@ export class SimulatorController {
   private logs = new LogBuffer()
   private revision = 0
   private closing = false
-  readonly service: HttpSimulator
+  private callbacks: ConstructorParameters<typeof HttpSimulator>[0]
+  service: HttpSimulator | TcpSimulator
   constructor(private readonly repository: SimulatorRepository) {
-    this.service = new HttpSimulator({
+    this.callbacks = {
       state: () => this.publish(),
       log: (record) => {
         const entry = this.logs.add(record)
         this.emit({ type: 'log', revision: ++this.revision, entry })
       },
-    })
+    }
+    this.service = new HttpSimulator(this.callbacks)
   }
   snapshot(): SimulatorSnapshot {
     return { revision: this.revision, config: this.repository.get(), runtime: this.service.getState(), logs: this.logs.get(), warning: this.repository.warning }
@@ -69,6 +72,8 @@ export class SimulatorController {
       if (!customer) throw new Error('CUSTOMER_NOT_FOUND')
       if (command.type === 'start') {
         if (config.selectedCustomerId !== customer.id) throw new Error('INVALID_INPUT')
+        if (busy) throw new Error('ALREADY_RUNNING')
+        this.service = customer.protocol === 'tcp' ? new TcpSimulator(this.callbacks) : new HttpSimulator(this.callbacks)
         await this.service.start(customer); return
       }
       if (command.type === 'selectCustomer' || command.type === 'deleteCustomer') {
@@ -86,7 +91,7 @@ export class SimulatorController {
           if (command.endpointIds.length !== entries.size || new Set(command.endpointIds).size !== entries.size || command.endpointIds.some((id) => !entries.has(id))) throw new Error('INVALID_INPUT')
           customer.endpoints = command.endpointIds.map((id) => entries.get(id)!)
         } else if (command.type === 'saveEndpoint') {
-          if (customer.endpoints.some((entry) => entry.id !== command.endpoint.id && entry.method === command.endpoint.method && entry.path === command.endpoint.path)) throw new Error('DUPLICATE_ROUTE')
+          if (customer.endpoints.some((entry) => entry.id !== command.endpoint.id && (customer.protocol === 'tcp' ? entry.name === command.endpoint.name : entry.method === command.endpoint.method && entry.path === command.endpoint.path))) throw new Error(customer.protocol === 'tcp' ? 'TCP_DUPLICATE_NAME' : 'DUPLICATE_ROUTE')
           const index = customer.endpoints.findIndex((entry) => entry.id === command.endpoint.id)
           if (index < 0) customer.endpoints.push(command.endpoint)
           else customer.endpoints[index] = command.endpoint
