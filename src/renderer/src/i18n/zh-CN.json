@@ -318,5 +318,10 @@
   "tcpLengthTailHelp": "结尾标志使用 HEX，# 为 23，回车换行为 0D0A。先按长度读取正文，再验证结尾；正文中可出现相同标志。长度或结尾错误将断开连接，不猜测边界。",
   "TCP_INVALID_LENGTH": "TCP 长度头格式或长度范围错误，连接已关闭",
   "TCP_INVALID_END_MARKER": "TCP 结尾标志不符合协议",
-  "TCP_LENGTH_OVERFLOW": "回复长度超出长度头可表示范围，未发送"
+  "TCP_LENGTH_OVERFLOW": "回复长度超出长度头可表示范围，未发送",
+  "tcpFramingHH": "<HH00000>正文<TT> 模板",
+  "tcpHeaderPrefix": "长度数字前固定文本",
+  "tcpHeaderSuffix": "长度数字后固定文本",
+  "tcpWrappedHelp": "例如 <HH00016>{\"action\":\"get\"}<TT>：固定前缀 <HH，5 位十进制正文长度，固定后缀 >，尾标 HEX 为 3C54543E。整包长度包含这些固定文本；回复自动使用相同包装。",
+  "TCP_INVALID_HEADER": "TCP 固定头标志不匹配，连接已关闭"
 }

@@ -22,6 +22,7 @@ export const endpointSchema = z.object({
 // TCP 流按结束符分帧；字段路径仅做对象属性读取，不执行表达式。
 export const tcpLengthHeaderSchema = z.object({
   width: z.number().int().min(1).max(10),
+  prefix: z.string().max(32).optional(), suffix: z.string().max(32).optional(),
   radix: z.enum(['decimal', 'hex']),
   unit: z.enum(['bytes', 'characters']),
   scope: z.enum(['body', 'frame']),
@@ -59,7 +60,7 @@ export const customerSchema = customerInputSchema.extend({ endpoints: z.array(en
   }
 })
 export const simulatorConfigSchema = z.object({
-  schemaVersion: z.literal(3), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(customerSchema).max(100),
+  schemaVersion: z.literal(4), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(customerSchema).max(100),
 }).strict().superRefine((config, context) => {
   const ids = config.customers.map((customer) => customer.id)
   if (new Set(ids).size !== ids.length || (config.selectedCustomerId && !ids.includes(config.selectedCustomerId))) context.addIssue({ code: 'custom', message: 'INVALID_INPUT' })
@@ -68,7 +69,7 @@ export type Endpoint = z.infer<typeof endpointSchema>
 export type CustomerInput = z.infer<typeof customerInputSchema>
 export type Customer = z.infer<typeof customerSchema>
 export type SimulatorConfig = z.infer<typeof simulatorConfigSchema>
-export const defaultSimulatorConfig: SimulatorConfig = { schemaVersion: 3, selectedCustomerId: null, customers: [] }
+export const defaultSimulatorConfig: SimulatorConfig = { schemaVersion: 4, selectedCustomerId: null, customers: [] }
 
 // 只接受明确业务命令，不开放通用 IPC、任意网络或文件访问能力。
 export const simulatorCommandSchema = z.discriminatedUnion('type', [
@@ -85,8 +86,8 @@ export const simulatorCommandSchema = z.discriminatedUnion('type', [
 ])
 export type SimulatorCommand = z.infer<typeof simulatorCommandSchema>
 
-/** v1/v2 保留原有 HTTP／结束符 TCP 行为；长度头仅显式开启。 */
+/** v1/v2/v3 保留原有 HTTP／结束符 TCP 行为；长度头仅显式开启。 */
 export function parseSimulatorConfig(value: unknown): SimulatorConfig {
-  if (value && typeof value === 'object' && 'schemaVersion' in value && (value.schemaVersion === 1 || value.schemaVersion === 2)) return simulatorConfigSchema.parse({ ...value, schemaVersion: 3 })
+  if (value && typeof value === 'object' && 'schemaVersion' in value && (value.schemaVersion === 1 || value.schemaVersion === 2 || value.schemaVersion === 3)) return simulatorConfigSchema.parse({ ...value, schemaVersion: 4 })
   return simulatorConfigSchema.parse(value)
 }

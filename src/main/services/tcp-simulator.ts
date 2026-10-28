@@ -83,7 +83,7 @@ export class TcpSimulator {
         decoder.push(chunk, (frame) => { this.handle(socket, frame); return !socket.destroyed })
       } catch (error) {
         // 长度或尾标损坏后无法可靠重同步，丢弃该连接，绝不猜测正文边界。
-        const code = error instanceof Error && ['TCP_INVALID_LENGTH', 'TCP_INVALID_END_MARKER', 'PAYLOAD_TOO_LARGE'].includes(error.message) ? error.message : 'TCP_INVALID_MESSAGE'
+        const code = error instanceof Error && ['TCP_INVALID_HEADER', 'TCP_INVALID_LENGTH', 'TCP_INVALID_END_MARKER', 'PAYLOAD_TOO_LARGE'].includes(error.message) ? error.message : 'TCP_INVALID_MESSAGE'
         this.event(code, 'warn'); decoder.clear(); socket.destroy()
       }
     })

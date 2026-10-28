@@ -318,5 +318,10 @@
   "tcpLengthTailHelp": "Use HEX for the marker: 23 for #, 0D0A for CRLF. Read the declared body length, then verify the marker. The same marker may appear inside the body. Invalid length or marker closes the connection.",
   "TCP_INVALID_LENGTH": "Invalid TCP length header or range; connection closed",
   "TCP_INVALID_END_MARKER": "TCP end marker does not match the protocol",
-  "TCP_LENGTH_OVERFLOW": "Reply length does not fit the header; nothing sent"
+  "TCP_LENGTH_OVERFLOW": "Reply length does not fit the header; nothing sent",
+  "tcpFramingHH": "<HH00000>body<TT> template",
+  "tcpHeaderPrefix": "Fixed text before length digits",
+  "tcpHeaderSuffix": "Fixed text after length digits",
+  "tcpWrappedHelp": "Example: <HH00016>{\"action\":\"get\"}<TT>. Prefix <HH, five decimal body-length digits, suffix >, end marker HEX 3C54543E. Whole-frame length includes fixed text. Framed replies use the same wrapper.",
+  "TCP_INVALID_HEADER": "TCP fixed header marker mismatch; connection closed"
 }

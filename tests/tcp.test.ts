@@ -80,7 +80,7 @@ it('migrates v1 and persists TCP configuration, rejecting duplicate names and fa
   const dir = await mkdtemp(join(tmpdir(), 'bingtools-tcp-')); cleanup.push(() => rm(dir, { recursive: true, force: true }))
   const file = join(dir, 'simulator.json')
   const config = parseSimulatorConfig({ schemaVersion: 1, selectedCustomerId: null, customers: [] })
-  expect(config.schemaVersion).toBe(3)
+  expect(config.schemaVersion).toBe(4)
   await writeFile(file, JSON.stringify({ ...config, schemaVersion: 1 }))
   const repository = new SimulatorRepository(file); await repository.load()
   const controller = new SimulatorController(repository); cleanup.push(() => controller.shutdown())
@@ -168,7 +168,7 @@ it('migrates old delimiter settings unchanged and persists length header configu
   await writeFile(file, JSON.stringify({ schemaVersion: 2, selectedCustomerId: customer.id, customers: [customer] }))
   const repository = new SimulatorRepository(file); await repository.load()
   expect(repository.get().customers[0]).toEqual(customer)
-  expect(repository.get().schemaVersion).toBe(3)
+  expect(repository.get().schemaVersion).toBe(4)
   const next = repository.get(); next.customers[0].tcp = { ...defaultTcpSettings, lengthHeader: { ...defaultTcpLengthHeader, width: 6 } }
   await repository.update(next)
   const restored = new SimulatorRepository(file); await restored.load()
@@ -176,4 +176,30 @@ it('migrates old delimiter settings unchanged and persists length header configu
   const input = { id: customer.id, name: customer.name, host: customer.host, port: customer.port, protocol: customer.protocol }
   for (const patch of [{ width: 0 }, { width: 11 }, { radix: 'binary' }, { unit: 'utf16' }]) expect(customerInputSchema.safeParse({ ...input, tcp: { ...defaultTcpSettings, lengthHeader: { ...defaultTcpLengthHeader, ...patch } } }).success).toBe(false)
   expect(customerInputSchema.safeParse({ ...input, tcp: { ...defaultTcpSettings, delimiter: 'FF', lengthHeader: { ...defaultTcpLengthHeader, unit: 'characters', scope: 'frame' } } }).success).toBe(false)
+})
+
+it('routes HH/TT wrapped frames over real TCP with split fixed markers and glued packets', async () => {
+  const settings = { ...defaultTcpSettings, delimiter: '3C54543E', lengthHeader: { ...defaultTcpLengthHeader, width: 5, prefix: '<HH', suffix: '>' } }
+  const { socket, logs } = await fixture(settings)
+  const body = '{"action":"getStatus","text":"<TT>"}'
+  const packet = '<HH' + String(Buffer.byteLength(body)).padStart(5, '0') + '>' + body + '<TT>'
+  expect(encodeTcpResponse('{"ok":true}', settings).toString()).toBe('<HH00011>{"ok":true}<TT>')
+  await reply(socket, ['<H', packet.slice(2, 7), packet.slice(7, -2), packet.slice(-2) + packet], '<HH00011>{"ok":true}<TT><HH00011>{"ok":true}<TT>')
+  expect(logs.filter((v) => v.code === 'TCP_REQUEST')).toHaveLength(2)
+  const closed = new Promise<void>((resolve) => socket.once('close', () => resolve()))
+  socket.write('<XX00002>{}<TT>'); await closed
+  expect(logs.some((v) => v.code === 'TCP_INVALID_HEADER')).toBe(true)
+})
+it('counts fixed UTF-8 header markers in frame lengths and rejects wrong header suffixes', () => {
+  for (const unit of ['bytes', 'characters'] as const) {
+    const settings = { ...defaultTcpSettings, delimiter: '3C54543E', lengthHeader: { ...defaultTcpLengthHeader, width: 5, prefix: '头<HH', suffix: '>', unit, scope: 'frame' as const } }
+    const packet = encodeTcpResponse('中文', settings)
+    expect(packet.subarray(Buffer.byteLength('头<HH'), Buffer.byteLength('头<HH') + 5).toString()).toBe(unit === 'bytes' ? '00022' : '00016')
+    const frames: string[] = [], decoder = new TcpFrameDecoder(settings)
+    for (const byte of packet) decoder.push(Buffer.from([byte]), (body) => { frames.push(body.toString()) })
+    expect(frames).toEqual(['中文'])
+  }
+  const settings = { ...defaultTcpSettings, delimiter: '3C54543E', lengthHeader: { ...defaultTcpLengthHeader, width: 5, prefix: '<HH', suffix: '>' } }
+  expect(() => new TcpFrameDecoder(settings).push(Buffer.from('<HH00002!{}<TT>'), () => {})).toThrow('TCP_INVALID_HEADER')
+  expect(parseSimulatorConfig({ schemaVersion: 3, selectedCustomerId: null, customers: [] }).schemaVersion).toBe(4)
 })

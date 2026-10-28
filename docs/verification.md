@@ -241,3 +241,10 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [main 构建](https://github.com/Bing0722/BingTools/actions/runs/40641590890)与 [v0.6.0 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/40641898830)均成功。Windows 2022 x64 与 macOS 14 ARM64 在线安装依赖后完成类型检查、Lint、59 项测试、版本说明校验和原生打包；发布作业成功。
 - [v0.6.0 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.6.0)已成为最新稳定版本。发布说明汇总自 0.4.5 以来的 TCP 功能；附有 Windows EXE、macOS DMG/ZIP、对应 blockmap 和两份更新元数据，共 8 个资产。
 - 公开读取 `latest.yml` 与 `latest-mac.yml`，确认版本 0.6.0、对应资产名、SHA-512 和本次更新说明。Windows 实机安装升级、用户设备协议与长时间高并发仍未验收；macOS 安装包未签名、未公证，需手动下载安装。
+
+## 2026-10-28 · 0.6.1 HH/TT 包装
+
+- `pnpm test`（8 文件、61 项）、`pnpm typecheck`、`pnpm lint`、`pnpm build`及版本校验通过，构建保留已知 Zod 注释和 chunk 大小警告。
+- 真实 TCP 测试覆盖固定前缀／数字／后缀／尾标拆包粘包、正文包含 `<TT>`、自动回复 `<HH00011>{"ok":true}<TT>`、错误头断连；逐字节验证 Unicode 固定文本下的字节／码点整包长度，验证错误后缀及 v3 → v4 迁移。
+- `pnpm exec node scripts/tcp-smoke.mjs --wrapped` 通过：真实 macOS Electron 选择模板、配置 JSON 字段、启动后收到包装回复、独立开关、停服、窄窗与配置恢复；截图 `test-results/tcp-wrapped-settings.png`。`--length` 和无参数旧协议流程亦通过。
+- 未新增依赖、未打包或发布；Windows 实机及用户设备协议未验证。

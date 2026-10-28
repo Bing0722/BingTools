@@ -10,8 +10,9 @@ const probe = createServer()
 await new Promise((resolve) => probe.listen(0, '127.0.0.1', resolve))
 const port = probe.address().port
 await new Promise((resolve) => probe.close(resolve))
-const lengthMode = process.argv.includes('--length')
-const frame = (body) => lengthMode ? String(Buffer.byteLength(body)).padStart(4, '0') + body + '#' : body + '\n'
+const wrappedMode = process.argv.includes('--wrapped')
+const lengthMode = wrappedMode || process.argv.includes('--length')
+const frame = (body) => wrappedMode ? '<HH' + String(Buffer.byteLength(body)).padStart(5, '0') + '>' + body + '<TT>' : lengthMode ? String(Buffer.byteLength(body)).padStart(4, '0') + body + '#' : body + '\n'
 let application, client
 try {
   const env = { ...process.env, BINGTOOLS_TEST_DATA: directory }
@@ -24,8 +25,8 @@ try {
   let dialog = page.getByRole('dialog')
   await dialog.getByLabel('连接方式', { exact: true }).selectOption('tcp')
   if (lengthMode) {
-    await dialog.getByLabel('TCP 分包协议').selectOption('length')
-    await dialog.getByLabel('消息结束符（HEX）').fill('23')
+    await dialog.getByLabel('TCP 分包协议').selectOption(wrappedMode ? 'wrapped' : 'length')
+    if (!wrappedMode) await dialog.getByLabel('消息结束符（HEX）').fill('23')
   }
   await dialog.getByLabel('客户名称', { exact: true }).fill('TCP 测试')
   await dialog.getByLabel('端口', { exact: true }).fill(String(port))
@@ -63,17 +64,18 @@ try {
   await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(800, 650))
   await mkdir('test-results', { recursive: true })
   if (lengthMode) await dialog.evaluate((element) => { element.scrollTop = 0 })
-  await page.screenshot({ animations: 'disabled', path: lengthMode ? 'test-results/tcp-length-settings.png' : 'test-results/tcp-settings.png' })
+  await page.screenshot({ animations: 'disabled', path: wrappedMode ? 'test-results/tcp-wrapped-settings.png' : lengthMode ? 'test-results/tcp-length-settings.png' : 'test-results/tcp-settings.png' })
   await dialog.getByRole('button', { name: '保存', exact: true }).click()
   await dialog.waitFor({ state: 'hidden' })
   const snapshot = await page.evaluate(() => window.app.simulator.getSnapshot())
   assert.equal(snapshot.data.config.customers[0].tcp.separator, '|')
-  assert.equal(snapshot.data.config.schemaVersion, 3)
+  assert.equal(snapshot.data.config.schemaVersion, 4)
   if (lengthMode) {
-    assert.equal(snapshot.data.config.customers[0].tcp.lengthHeader.width, 4)
+    assert.equal(snapshot.data.config.customers[0].tcp.lengthHeader.width, wrappedMode ? 5 : 4)
     await page.getByRole('button', { name: '编辑客户', exact: true }).click()
-    assert.equal(await dialog.getByLabel('TCP 分包协议').inputValue(), 'length')
-    assert.equal(await dialog.getByLabel('长度头位数（1–10）').inputValue(), '4')
+    assert.equal(await dialog.getByLabel('TCP 分包协议').inputValue(), wrappedMode ? 'wrapped' : 'length')
+    assert.equal(await dialog.getByLabel('长度头位数（1–10）').inputValue(), wrappedMode ? '5' : '4')
+    if (wrappedMode) assert.equal(await dialog.getByLabel('长度数字前固定文本').inputValue(), '<HH')
   }
   assert.deepEqual(errors, [])
   console.log('TCP desktop: customer configuration, JSON interface, real response, toggle, logs, stop and narrow text settings passed')
