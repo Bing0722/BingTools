@@ -228,3 +228,10 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm exec node scripts/tcp-smoke.mjs` 通过：真实 macOS Electron 新建 TCP 客户、配置接口、外部本机连接得到回复、关闭接口产生未匹配日志、停服、窄窗文本提取配置保存。截图 `test-results/tcp-settings.png`；实际截图检查后将原生复选框替换为统一开关。
 - `pnpm test:desktop` 原 HTTP 流程、主题、语言、日志、未保存保护、关闭／重开和重启回归通过，无 renderer 错误。
 - 未新增依赖、未打包或发布；Windows 实机、长时间大并发、真实设备协议未验证。TCP 日志表示已提交发送，不代表客户端已确认接收。
+
+## 2026-10-28 · 0.6.0 TCP 长度头特殊协议
+
+- `pnpm typecheck`、`pnpm build`、`pnpm test`（8 文件、59 项）、`pnpm lint`及发布版本说明校验通过；构建保留已知 Zod 注释和 chunk 大小警告。
+- 新增测试：真实 TCP 连接下头／正文／尾标拆包、多帧粘包、正文中出现尾标、自动生成回复包装、错误尾标断开后新连接继续服务。字节逐个输入验证中文和 emoji、UTF-8 半字符、十六进制头、正文／整包长度；验证非法编码、非法／超限长度、头宽度溢出、关闭自动包装，以及 v2 → v3 配置迁移和恢复。
+- `pnpm exec node scripts/tcp-smoke.mjs --length` 与不带参数的旧结束符流程通过：真实 macOS Electron 客户设置、字段提取、接口回复／开关、停服和窄窗配置保存；截图 `test-results/tcp-length-settings.png`。长度头设置重新打开保持原值。
+- 未新增依赖、未打包或发布；Windows 实机、用户设备协议、长时间高并发未验证。不支持二进制整数头或校验和。

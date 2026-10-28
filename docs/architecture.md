@@ -75,7 +75,7 @@ src/renderer/src/
 
 `settings.json` schemaVersion 3 保存 theme、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1/v2 显式迁移，补右下角通知位置；v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
-`simulator.json` schemaVersion 2 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
+`simulator.json` schemaVersion 3 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
 日志与通知从不持久化。完整设置和客户数据会留在本机 userData，不进入 Git。
 
@@ -156,3 +156,11 @@ SimulatorController 使用同一串行命令、日志和 IPC，根据客户 prot
 每连接独立按结束符分帧并限长 1 MiB；结束符被剥除后按 UTF-8 严格解码，JSON 属性只读取 own property，拒绝原型相关路径。提取字符串或数字后按大小写敏感的接口 name 匹配，不执行正则或脚本。HTTP 仍按 method＋path 判重，TCP 按 name 判重；转换协议时须满足目标协议的唯一性要求。格式错误及未匹配不写回协议数据。
 
 连接最多 64，空闲 60 秒释放，待写缓冲约 2 MiB，停服先 end、最多 3 秒后 destroy。JSON 回复移除字符串外空白，保留数字字面量；日志显示 TCP、提取值和限长正文预览，发送日志表示已提交 socket.write，不表示对端确认接收。renderer 不新增网络特权。
+
+### TCP 长度头协议（0.6.0）
+
+TcpFrameDecoder 独立管理每连接缓冲与字符扫描游标；lengthHeader 缺失时沿用结束符扫描，有配置时读取固定宽度 ASCII 数字头，扣除可选整包开销，按声明字节数或 Unicode 码点数定位尾标。UTF-8 续字节、代理区和过长编码严格校验，跨 chunk 的半字符等待补齐。正文中的尾标不会结束帧。非法长度／尾标无法可靠重同步，关闭当前连接；正文限长仍 1 MiB，声明超限立即拒绝。
+
+encodeTcpResponse 与接收共用单位、进制、范围计算；补零生成固定宽度头，溢出不发送；wrapResponse 开启时强制追加尾标，关闭时使用原 appendDelimiter 行为。日志预览仍是剥离包装后的正文，协议错误记录稳定事件代码。
+
+simulator.json 升级 schemaVersion 3；v1/v2 显式迁移，未配置 lengthHeader 的客户保持原行为。跨进程配置使用 Zod 校验，整包字符计数要求尾标为有效 UTF-8；不执行表达式、脚本或原始 socket IPC。

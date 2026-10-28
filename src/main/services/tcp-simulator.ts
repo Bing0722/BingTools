@@ -1,3 +1,4 @@
+import { TcpFrameDecoder, encodeTcpResponse } from './tcp-framing'
 import { createServer, type Server, type Socket } from 'node:net'
 import { performance } from 'node:perf_hooks'
 import { BODY_LIMIT, defaultTcpSettings, type Customer } from '../../shared/schemas/simulator'
@@ -72,27 +73,22 @@ export class TcpSimulator {
   private accept(socket: Socket) {
     this.sockets.add(socket)
     const settings = this.customer?.tcp ?? defaultTcpSettings
-    const delimiter = Buffer.from(settings.delimiter, 'hex')
-    let buffer = Buffer.alloc(0)
+    const decoder = new TcpFrameDecoder(settings)
     socket.setTimeout(60000, () => socket.destroy())
     socket.on('error', () => this.event('TCP_CONNECTION_ERROR', 'warn'))
-    socket.on('close', () => { this.sockets.delete(socket); buffer = Buffer.alloc(0) })
+    socket.on('close', () => { this.sockets.delete(socket); decoder.clear() })
     socket.on('data', (chunk: Buffer) => {
       if (this.state.phase !== 'running') return
-      buffer = Buffer.concat([buffer, chunk])
-      // 一个 data 事件可能包含多帧，末尾半帧留待下一次读取。
-      let end: number
-      while ((end = buffer.indexOf(delimiter)) >= 0) {
-        if (end > BODY_LIMIT) { this.event('PAYLOAD_TOO_LARGE', 'warn'); socket.destroy(); return }
-        const frame = buffer.subarray(0, end)
-        buffer = buffer.subarray(end + delimiter.length)
-        this.handle(socket, frame, delimiter)
-        if (socket.destroyed) return
+      try {
+        decoder.push(chunk, (frame) => { this.handle(socket, frame); return !socket.destroyed })
+      } catch (error) {
+        // 长度或尾标损坏后无法可靠重同步，丢弃该连接，绝不猜测正文边界。
+        const code = error instanceof Error && ['TCP_INVALID_LENGTH', 'TCP_INVALID_END_MARKER', 'PAYLOAD_TOO_LARGE'].includes(error.message) ? error.message : 'TCP_INVALID_MESSAGE'
+        this.event(code, 'warn'); decoder.clear(); socket.destroy()
       }
-      if (buffer.length > BODY_LIMIT + delimiter.length - 1) { this.event('PAYLOAD_TOO_LARGE', 'warn'); socket.destroy() }
     })
   }
-  private handle(socket: Socket, frame: Buffer, delimiter: Buffer) {
+  private handle(socket: Socket, frame: Buffer) {
     const customer = this.customer
     if (!customer) return
     const started = performance.now(), settings = customer.tcp ?? defaultTcpSettings
@@ -109,9 +105,13 @@ export class TcpSimulator {
     } catch { code = 'TCP_INVALID_MESSAGE' }
     // 未匹配或解析失败仅记录日志，不向自定义协议注入 HTTP 错误文本。
     if (code === 'TCP_REQUEST') {
-      const outgoing = Buffer.concat([Buffer.from(response), settings.appendDelimiter ? delimiter : Buffer.alloc(0)])
-      if (socket.writableLength + outgoing.length > 2 * BODY_LIMIT + 32) { code = 'TCP_BACKPRESSURE'; socket.destroy() }
-      else socket.write(outgoing)
+      try {
+        const outgoing = encodeTcpResponse(response, settings)
+        if (socket.writableLength + outgoing.length > 2 * BODY_LIMIT + 64) { code = 'TCP_BACKPRESSURE'; socket.destroy() }
+        else socket.write(outgoing)
+      } catch (error) {
+        code = error instanceof Error && error.message === 'TCP_LENGTH_OVERFLOW' ? error.message : 'TCP_INVALID_MESSAGE'
+      }
     }
     const inbound = preview(frame), outbound = preview(response)
     this.callbacks.log({ customerId: customer.id, customerName: customer.name, method: 'TCP', path: name ? preview(name).text : undefined,
