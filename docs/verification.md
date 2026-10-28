@@ -235,3 +235,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 新增测试：真实 TCP 连接下头／正文／尾标拆包、多帧粘包、正文中出现尾标、自动生成回复包装、错误尾标断开后新连接继续服务。字节逐个输入验证中文和 emoji、UTF-8 半字符、十六进制头、正文／整包长度；验证非法编码、非法／超限长度、头宽度溢出、关闭自动包装，以及 v2 → v3 配置迁移和恢复。
 - `pnpm exec node scripts/tcp-smoke.mjs --length` 与不带参数的旧结束符流程通过：真实 macOS Electron 客户设置、字段提取、接口回复／开关、停服和窄窗配置保存；截图 `test-results/tcp-length-settings.png`。长度头设置重新打开保持原值。
 - 未新增依赖、未打包或发布；Windows 实机、用户设备协议、长时间高并发未验证。不支持二进制整数头或校验和。
+
+### 0.6.0 GitHub 正式发布
+
+- [main 构建](https://github.com/Bing0722/BingTools/actions/runs/40641590890)与 [v0.6.0 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/40641898830)均成功。Windows 2022 x64 与 macOS 14 ARM64 在线安装依赖后完成类型检查、Lint、59 项测试、版本说明校验和原生打包；发布作业成功。
+- [v0.6.0 正式 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.6.0)已成为最新稳定版本。发布说明汇总自 0.4.5 以来的 TCP 功能；附有 Windows EXE、macOS DMG/ZIP、对应 blockmap 和两份更新元数据，共 8 个资产。
+- 公开读取 `latest.yml` 与 `latest-mac.yml`，确认版本 0.6.0、对应资产名、SHA-512 和本次更新说明。Windows 实机安装升级、用户设备协议与长时间高并发仍未验收；macOS 安装包未签名、未公证，需手动下载安装。
