@@ -1,3 +1,4 @@
+import { colorPalettes, uiFontStack } from '@/lib/appearance'
 import { connectUpdates } from '@/stores/update-store'
 import { connectMotion } from '@/stores/motion-store'
 import { useEffect, type ReactNode } from 'react'
@@ -29,6 +30,12 @@ export function Providers({ children }: { children: ReactNode }) {
     document.documentElement.classList.toggle('dark', preferences.theme === 'dark' || (preferences.theme === 'system' && systemDark))
     document.documentElement.style.colorScheme = preferences.theme === 'system' ? (systemDark ? 'dark' : 'light') : preferences.theme
   }, [preferences.theme, systemDark])
+  useEffect(() => {
+    document.documentElement.dataset.color = preferences.themeColor
+    const dark = preferences.theme === 'dark' || (preferences.theme === 'system' && systemDark)
+    document.documentElement.style.setProperty('--theme-accent', colorPalettes[preferences.themeColor][dark ? 'dark' : 'light'])
+    document.documentElement.style.setProperty('--font-ui', uiFontStack({ uiFont: preferences.uiFont, localFont: preferences.localFont }))
+  }, [preferences.themeColor, preferences.uiFont, preferences.localFont, preferences.theme, systemDark])
   useEffect(() => {
     const language = resolveLanguage(preferences.language, systemLocale)
     void i18n.changeLanguage(language)

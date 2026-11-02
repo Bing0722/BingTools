@@ -30,7 +30,7 @@
 }
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
-body { background: var(--background); color: var(--foreground); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
+body { background: var(--background); color: var(--foreground); font-family:var(--font-ui,system-ui); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
 button, a, input, select, textarea { -webkit-app-region: no-drag; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
@@ -363,7 +363,7 @@ textarea { resize:vertical; }
   select::picker-icon { content:""; width:7px; height:7px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; rotate:45deg; margin:-4px 2px 0 8px; color:var(--muted-foreground); flex-shrink:0; transition:rotate var(--motion-fast); }
   select:open::picker-icon { rotate:225deg; margin-top:3px; }
   select:open { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent); }
-  select::picker(select) { margin:6px 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--foreground); box-shadow:var(--shadow); min-width:anchor-size(width); max-width:calc(100vw - 24px); max-height:min(320px,60vh); overflow:auto; font:12px/1.5 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  select::picker(select) { margin:6px 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--foreground); box-shadow:var(--shadow); min-width:anchor-size(width); max-width:calc(100vw - 24px); max-height:min(320px,60vh); overflow:auto; font:12px/1.5 var(--font-ui,system-ui); }
   select option { min-height:32px; display:flex; align-items:center; gap:12px; padding:7px 10px; margin:1px 0; border:0; border-radius:6px; background:transparent; color:var(--foreground); white-space:normal; overflow-wrap:anywhere; cursor:pointer; transition:background-color var(--motion-fast); }
   select option:checked { background:var(--selected); color:var(--foreground); font-weight:550; }
   select option:hover,select option:focus { background:var(--hover); color:var(--foreground); outline:none; }
@@ -397,3 +397,42 @@ input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
   input,select,textarea,select::picker-icon,select option,input[type="checkbox"]::before,.number-steppers button { transition:none; }
   select:open::picker(select) { animation:none; }
 }
+
+/* 六套配色只改变外观变量，错误、成功及协议标识仍保留各自语义色。 */
+:root[data-color]:not([data-color="graphite"]) {
+  --accent:var(--theme-accent); --primary:var(--theme-accent); --primary-foreground:#fff; --accent-foreground:#fff;
+  --background:color-mix(in srgb,var(--theme-accent) 2%,#fff);
+  --sidebar:color-mix(in srgb,var(--theme-accent) 5%,#f6f6f7);
+  --selected:color-mix(in srgb,var(--theme-accent) 14%,#fff);
+  --hover:color-mix(in srgb,var(--theme-accent) 8%,#fff);
+}
+:root.dark[data-color]:not([data-color="graphite"]) {
+  --primary-foreground:#111827; --accent-foreground:#111827;
+  --background:color-mix(in srgb,var(--theme-accent) 3%,#18181b);
+  --sidebar:color-mix(in srgb,var(--theme-accent) 4%,#141416);
+  --selected:color-mix(in srgb,var(--theme-accent) 18%,#202024);
+  --hover:color-mix(in srgb,var(--theme-accent) 10%,#202024);
+}
+:root[data-color]:not([data-color="graphite"]) .nav-item.active { color:var(--primary); }
+.appearance-section { margin-top:24px; }
+.appearance-section h3 { font-size:13px; font-weight:500; margin-bottom:4px; }
+.color-grid { display:grid; grid-template-columns:repeat(6,minmax(0,1fr)); gap:8px; margin-top:12px; }
+.color-choice { display:flex; flex-direction:column; align-items:center; gap:8px; border:1px solid var(--border); border-radius:8px; padding:12px 4px; background:var(--surface); color:var(--muted-foreground); font-size:12px; transition:border-color var(--motion-fast),background-color var(--motion-fast),color var(--motion-fast); }
+.color-choice i { display:grid; place-items:center; width:24px; height:24px; border-radius:50%; background:var(--swatch); color:#fff; }
+.color-choice[aria-pressed="true"] { border-color:var(--accent); color:var(--foreground); background:var(--hover); }
+.color-choice:hover:not(:disabled) { background:var(--hover); }
+.local-font-settings { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr) auto; gap:12px; align-items:end; margin-top:16px; animation:content-enter var(--motion-panel) var(--motion-ease); }
+.local-font-settings > p { grid-column:1/-1; }
+.font-preview { margin-top:16px; padding:16px; border:1px solid var(--border); border-radius:8px; background:var(--sidebar); overflow-wrap:anywhere; }
+.font-preview p { font-size:14px; line-height:1.8; }
+.font-preview > span { display:block; margin-bottom:8px; font-family:var(--font-ui,system-ui); }
+.theme-shortcut { width:100%; border:0; background:transparent; text-align:left; }
+.theme-shortcut-mode { margin-left:auto; font-size:10px; }
+.is-collapsed .theme-shortcut-mode { display:none; }
+.theme-menu { z-index:90; min-width:180px; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--foreground); box-shadow:var(--shadow); animation:fade-in var(--motion-fast) var(--motion-ease); }
+.theme-menu-item { display:flex; align-items:center; gap:10px; min-height:34px; padding:7px 10px; border-radius:6px; outline:none; font-size:12px; cursor:pointer; }
+.theme-menu-item > span:last-child:not(:nth-child(2)) { margin-left:auto; }
+.theme-menu-item[data-state="checked"] { background:var(--selected); }
+.theme-menu-item[data-highlighted] { background:var(--hover); }
+.theme-menu-item[data-disabled] { opacity:.5; cursor:not-allowed; }
+@media(max-width:960px) { .color-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .local-font-settings { grid-template-columns:minmax(0,1fr); } .setting-row { flex-wrap:wrap; } }

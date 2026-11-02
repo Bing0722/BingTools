@@ -73,7 +73,7 @@ src/renderer/src/
 
 ## 持久化
 
-`settings.json` schemaVersion 3 保存 theme、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1/v2 显式迁移，补右下角通知位置；v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
+`settings.json` schemaVersion 4 保存 theme、themeColor、uiFont、localFont、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1–v3 显式迁移，补系统字体与石墨配色；v1/v2 补右下角通知位置，v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
 `simulator.json` schemaVersion 5 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
@@ -180,3 +180,11 @@ shared/schemas/transfer 定义独立 BingTools-transfer v1 文件与严格 expor
 沿用现有原生表单语义与 Radix/shadcn 基础组件，不新增组件库。select 使用 `appearance: base-select` 与 `::picker(select)` 统一跨平台外观，缺少支持时回退原生。当前 Electron 已通过运行时 CSS.supports 验证；参考 [Chromium 官方说明](https://developer.chrome.com/blog/a-customizable-select)。Providers 在 window capture 阶段拦截打开的 select 的 Esc 传播，但不阻止浏览器默认关闭，避免 Radix 同时关闭外层弹窗；卸载移除监听。
 
 components/ui/NumberInput 包装原生 number 输入，stepUp/stepDown 负责数值、步长和边界，再通过原生 value setter 与 input 事件更新现有 React 受控表单；不另存数值副本，不更改 IPC 或持久化契约。全部数字字段复用该组件，串口与端口输入补齐既有 schema 对应的界面范围。
+
+## 字体与个性化主题（0.8.0）
+
+settings v4 新增严格枚举 themeColor、uiFont，以及 1–100 字符 localFont 名称，不允许路径、URL 或 CSS 注入。继续复用 settings:update 的来源校验与原子保存；保存成功后更新 renderer 偏好。旧设置显式迁移保持系统字体与原有石墨配色，重置外观包含这些新字段。
+
+Providers 从统一 colorPalettes 映射浅深主色，设置 --theme-accent、data-color 与 --font-ui；theme=system 时继续响应 matchMedia。CSS 通过语义变量派生按钮、选中和背景轻微染色，错误/成功不随个性化修改。侧栏 ThemeShortcut 复用 Radix RadioGroup，与设置页使用同一个 store，不增加主题状态副本。
+
+字体资源使用在线安装并固定的 @fontsource-variable/noto-sans-sc 5.3.1；Vite 将 woff2 分片和 OFL 许可复制到 renderer 产物，不请求远程字体，assetsInlineLimit=0 保持字体从 self 加载而无需放宽 CSP。本机字体通过 FontFace(local(...)) 检查约定候选或明确输入的名称，不枚举磁盘、不读取字体文件。CSS 家族名引用经过引号转义，缺字/缺失字体回退系统；JSON/代码正文保留等宽字体。

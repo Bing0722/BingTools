@@ -14,7 +14,7 @@ export default defineConfig({
   preload: { build: { externalizeDeps: false } },
   renderer: {
     define: { __APP_VERSION__: JSON.stringify(pkg.version), __RELEASE_NOTES__: JSON.stringify(readFileSync(resolve(`docs/releases/${pkg.version}.md`), 'utf8')) },
-    build: { minify: true },
+    build: { minify: true, assetsInlineLimit: 0 },
     resolve: { alias: { '@': resolve('src/renderer/src') } },
     plugins: [react(), tailwindcss(), {
       name: 'renderer-csp',

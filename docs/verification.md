@@ -282,3 +282,12 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm test:desktop`、`pnpm test:motion`、`node scripts/transfer-smoke.mjs`、`node scripts/tcp-smoke.mjs --wrapped` 回归通过，覆盖现有 HTTP、运控控件／串口枚举、导入导出及真实本机 TCP 收发和设置。没有连接串口硬件。
 - 验证中修复 base-select 与 Radix 的 Esc 传播冲突；TCP 脚本改为精确标签匹配，避免匹配新增步进按钮，同时将过期的 schema v4 断言同步到既有 v5。自动审批服务曾因用量限制中断测试启动，恢复后已完成相关回归。
 - 本轮在本机 macOS 验证，未执行 Windows/Linux 实机显示与安装验证，也未生成本轮安装包。未推送或发布。
+
+## 0.8.0 字体与主题个性化（2026-11-02）
+
+- `pnpm test`：10 个文件、73 项通过，覆盖旧设置迁移、严格参数校验、保存失败保留原配置、重置、字体回退和六套配色的按钮文字对比度。
+- `pnpm lint`、`pnpm build`（含类型检查）通过；生产版本升级为 0.8.0，发布说明已同步。保留既有依赖注释和块体积提示。
+- `node scripts/appearance-smoke.mjs` 与 `pnpm test:desktop` 通过：侧栏快捷入口的鼠标、键盘、折叠状态，跟随系统，六套主题色，本机字体存在性检查、保存与重启、重置，以及简中 800×560 布局。
+- 内嵌 Noto Sans SC 使用 Fontsource 5.3.1，在线安装并通过冻结锁文件检查；离线测试结合浏览器实际字形字体检查确认中文由打包字体渲染，无远程字体请求。完整 OFL 许可随应用保留。
+- 检查浅色森林、深色鸢紫与中文窄窗截图，控件、预览及侧栏布局正常。本机 macOS ARM64 应用目录版本为 0.8.0，针对该应用运行同一 appearance-smoke 脚本再次通过。
+- 未验证 Windows/Linux 实机、安装器或真实串口设备；macOS 未签名、公证。没有推送、标签或远端发布。
