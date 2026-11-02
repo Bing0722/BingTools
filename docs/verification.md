@@ -248,3 +248,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 真实 TCP 测试覆盖固定前缀／数字／后缀／尾标拆包粘包、正文包含 `<TT>`、自动回复 `<HH00011>{"ok":true}<TT>`、错误头断连；逐字节验证 Unicode 固定文本下的字节／码点整包长度，验证错误后缀及 v3 → v4 迁移。
 - `pnpm exec node scripts/tcp-smoke.mjs --wrapped` 通过：真实 macOS Electron 选择模板、配置 JSON 字段、启动后收到包装回复、独立开关、停服、窄窗与配置恢复；截图 `test-results/tcp-wrapped-settings.png`。`--length` 和无参数旧协议流程亦通过。
 - 未新增依赖、未打包或发布；Windows 实机及用户设备协议未验证。
+
+## 0.6.2 WebAPI response delay (2026-11-02)
+
+- `pnpm test`: 8 files / 64 tests passed, including real HTTP delay, concurrent immediate responses, request snapshots, elapsed logs, disconnect/stop cleanup, restart, validation, migration and persistence failures.
+- `pnpm lint` and `pnpm build` (including typecheck) passed. Existing dependency annotation and chunk-size warnings remain.
+- `pnpm test:desktop` passed on local macOS: default-off delay, disabled time field, keyboard Space toggle, saving/reopening 250 ms, and a real HTTP request taking at least 230 ms. Existing themes, narrow layout, window lifecycle and restart checks passed with no renderer errors. Inspected test-results/endpoint-delay.png: controls and fixed footer fit correctly.
+- Initial desktop runs exposed a release-note heading mismatch and an ambiguous Close locator; both were corrected before the final passing run.
+- No installation package, Windows/Linux device or installation validation this round. No remote push or release.
