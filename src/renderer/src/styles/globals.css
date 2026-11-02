@@ -342,3 +342,12 @@ textarea { resize:vertical; }
 .customer-form .tcp-length-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
 
 .response-delay-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:end; }
+
+.simulator-title-actions { display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:flex-end; }
+.transfer-dialog { max-height:90vh; overflow-y:auto; }
+.transfer-section { display:flex; flex-direction:column; align-items:stretch; gap:12px; padding:16px 0; border-top:1px solid var(--border); }
+.transfer-section h3 { margin:0; font-size:14px; }
+.transfer-section > .button { align-self:flex-start; }
+.transfer-preview { min-width:0; padding:12px; border:1px solid var(--border); border-radius:8px; animation:content-enter var(--motion-panel) var(--motion-ease); }
+.transfer-preview ul { max-height:120px; overflow:auto; padding-left:20px; overflow-wrap:anywhere; }
+@media (prefers-reduced-motion:reduce) { .transfer-preview { animation:none; } }

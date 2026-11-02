@@ -1,3 +1,4 @@
+import type { TransferExport, TransferModule, TransferPreview } from '../schemas/transfer'
 import type { MotionCommand, MotionEvent, MotionSnapshot, MotionState, SerialPortInfo } from '../schemas/motion'
 import type { UpdateSnapshot } from './updater'
 import type { Preferences, SettingsPatch } from '../schemas/settings'
@@ -7,6 +8,12 @@ export type Result<T> = { ok: true; data: T } | { ok: false; error: { code: stri
 export interface SettingsSnapshot { preferences: Preferences; warning?: string; systemLocale?: string }
 export interface AppApi {
   platform: 'darwin' | 'win32' | 'linux'
+  transfer: {
+    choose(module: TransferModule): Promise<Result<TransferPreview | null>>
+    apply(input: { token: string; customerId?: string }): Promise<Result<null>>
+    discard(): Promise<Result<null>>
+    export(input: TransferExport): Promise<Result<boolean>>
+  }
   settings: {
     get(): Promise<Result<SettingsSnapshot>>
     update(patch: SettingsPatch): Promise<Result<SettingsSnapshot>>

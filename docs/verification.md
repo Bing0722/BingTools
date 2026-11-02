@@ -257,6 +257,16 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - Initial desktop runs exposed a release-note heading mismatch and an ambiguous Close locator; both were corrected before the final passing run.
 - No installation package, Windows/Linux device or installation validation this round. No remote push or release.
 
+## 0.7.0 客户与接口导入导出（2026-11-02）
+
+- `pnpm test`：9 个测试文件、69 项通过。新增 HTTP/TCP/串口完整字段迁移、ID 隔离、客户同名后缀、协议与模块限制、接口冲突、数量限制、严格参数、保存失败不改原数据、串行导入、运行中拒绝及重启恢复测试。
+- `pnpm typecheck`、`pnpm lint`、`pnpm build` 通过。0.7.0 及发布说明完成生产注入；主进程与 transfer-worker 独立入口生成。保留已有依赖注释和大块体积构建提示，无构建失败。
+- `node scripts/transfer-smoke.mjs` 通过：真实 Electron 页面、worker 文件读写、客户及接口导出／预览／确认／追加、同名客户处理、冲突拒绝、取消、未来版本／跨模块／路径注入拒绝、中文深色 800×560 布局与重启持久化。原生文件对话框的选择结果由测试替身提供，文件处理与业务 IPC 使用真实实现；未连接硬件。
+- 检查 `test-results/transfer-preview.png` 与 `transfer-narrow-dark-zh.png`：导入摘要清晰，窄窗可滚动访问确认按钮，弹窗无越界。初次脚本直接保存语言但未刷新 renderer 状态，已修正为刷新页面后检查，最终通过。
+- `pnpm test:desktop`、`pnpm test:motion` 回归通过；已有 HTTP、窗口、未保存保护及运控页面／本机串口枚举无回归，无 renderer 错误。
+- `pnpm package` 生成本机 macOS ARM64 应用目录。使用 `BINGTOOLS_EXECUTABLE=.../release/mac-arm64/BingTools.app/Contents/MacOS/BingTools node scripts/transfer-smoke.mjs` 在独立临时目录再次通过迁移流程，确认 ASAR 内 worker 及依赖可加载。
+- 未验证 Windows/Linux 实机、真实串口设备或安装器；macOS 未签名、公证。本轮没有推送、标签或远端发布。
+
 ### 0.6.2 GitHub release
 
 - [Release workflow](https://github.com/Bing0722/BingTools/actions/runs/41375069875) passed on Windows 2022 x64 and macOS 14 ARM64, including typecheck, lint, 64 tests, release-note validation, native packaging and publication.

@@ -1,3 +1,4 @@
+import { registerTransfer } from './ipc/transfer'
 import { MotionController, MotionRepository } from './services/motion-controller'
 import { registerMotion } from './ipc/motion'
 import { app, BrowserWindow, nativeTheme, screen, session } from 'electron'
@@ -116,6 +117,7 @@ void app.whenReady().then(async () => {
   registerSettings(repository, () => window, expectedUrl, updateMenu)
   registerSimulator(simulator, () => window, expectedUrl)
   registerMotion(motion, () => window, expectedUrl)
+  registerTransfer(simulator, motion, () => window, expectedUrl)
   const updateRepository = __UPDATE_REPOSITORY__
   const mode = !updateRepository ? 'demo' : app.isPackaged ? 'github' : 'unavailable'
   const backend = mode === 'github' ? (await import('./services/github-updater')).githubBackend(updateRepository, () => updater.installFailed()) : demoBackend(app.getVersion())

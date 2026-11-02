@@ -1,3 +1,5 @@
+import type { TransferData } from '../../shared/schemas/transfer'
+import { mergeSimulatorTransfer } from './transfer-data'
 import { randomUUID } from 'node:crypto'
 import type { SimulatorRepository } from '../storage/simulator-repository'
 import { simulatorCommandSchema, simulatorConfigSchema, customerNameKey, type SimulatorCommand } from '../../shared/schemas/simulator'
@@ -37,6 +39,17 @@ export class SimulatorController {
     await this.queue
     await this.service.stop()
     await this.repository.flush()
+  }
+  importData(data: TransferData, customerId?: string): Promise<SimulatorSnapshot> {
+    // 导入也进入业务队列；再次检查生命周期，整批落盘成功后才发布。
+    const operation = this.queue.then(async () => {
+      if (this.closing || ['starting', 'running', 'stopping'].includes(this.service.getState().phase)) throw new Error('STOP_FIRST')
+      const config = mergeSimulatorTransfer(this.repository.get(), data, customerId)
+      try { await this.repository.update(config) } catch { throw new Error('SAVE_FAILED') }
+      this.publish(); return this.snapshot()
+    })
+    this.queue = operation.then(() => undefined, () => undefined)
+    return operation
   }
   execute(command: SimulatorCommand): Promise<SimulatorSnapshot> {
     const operation = this.queue.then(async () => {

@@ -1,3 +1,5 @@
+import type { TransferData } from '../../shared/schemas/transfer'
+import { mergeMotionTransfer } from './transfer-data'
 import { randomUUID } from 'node:crypto'
 import { SerialPort } from 'serialport'
 import { JsonRepository } from '../storage/json-repository'
@@ -57,6 +59,17 @@ export class MotionController {
   private flushLogs() { clearTimeout(this.batchTimer); this.batchTimer = undefined; if (this.pending.length) this.emit({ type: 'logs', entries: this.pending.splice(0) }) }
   async listPorts() { try { return (await this.driver.list()).map(({ path, manufacturer }) => ({ path, manufacturer })) } catch { throw new Error('MOTION_LIST_FAILED') } }
   resume() { this.shuttingDown = false }
+  importData(data: TransferData, customerId?: string): Promise<MotionState> {
+    // 导入也进入业务队列；再次检查生命周期，整批落盘成功后才发布。
+    const operation = this.queue.then(async () => {
+      if (this.shuttingDown || !!this.port || ['starting', 'running', 'stopping'].includes(this.phase)) throw new Error('STOP_FIRST')
+      const config = mergeMotionTransfer(this.repository.get(), data, customerId)
+      try { await this.repository.update(config) } catch { throw new Error('SAVE_FAILED') }
+      this.changed(); return this.state()
+    })
+    this.queue = operation.then(() => undefined, () => undefined)
+    return operation
+  }
   execute(command: MotionCommand): Promise<MotionState> {
     const action = this.queue.then(async () => {
       if (this.shuttingDown) throw new Error('STOP_FIRST')

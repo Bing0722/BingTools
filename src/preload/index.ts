@@ -8,6 +8,12 @@ import type { SimulatorCommand } from '../shared/schemas/simulator'
 const command = (value: SimulatorCommand) => ipcRenderer.invoke('simulator:command', value)
 const api: AppApi = {
   platform: process.platform as AppApi['platform'],
+  transfer: {
+    choose: (module) => ipcRenderer.invoke('transfer:choose', module),
+    apply: (input) => ipcRenderer.invoke('transfer:apply', input),
+    discard: () => ipcRenderer.invoke('transfer:discard'),
+    export: (input) => ipcRenderer.invoke('transfer:export', input),
+  },
   settings: { get: () => ipcRenderer.invoke('settings:get'), update: (patch) => ipcRenderer.invoke('settings:update', patch) },
   updater: {
     getSnapshot: () => ipcRenderer.invoke('updater:snapshot'),

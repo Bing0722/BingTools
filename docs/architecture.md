@@ -168,3 +168,9 @@ simulator.json 升级 schemaVersion 3；v1/v2 显式迁移，未配置 lengthHea
 长度头新增可选 prefix／suffix，按 UTF-8 固定文本验证，正文偏移包含前缀、数字和后缀；整包计数包含所有固定文本。schema v1–v3 迁移到 v4，缺省标志为空。回复使用同一偏移和计数规则，头标志不匹配则记录 TCP_INVALID_HEADER 并断开连接。
 
 HTTP endpoint.responseDelay 为可选 { enabled, ms }，ms 为 0–60000 整数，主进程与页面共用严格校验。simulator.json schema v5 接受 v1–v4 迁移，缺省表示不延时。接收完成后通过定时器等待，保留请求开始时的配置；单个服务最多 256 个等待响应，超出返回 503。延时连接暂时禁用 socket 空闲超时；响应结束后由 HTTP keep-alive 超时管理。断开、停服及服务异常清理定时器；413/404 不延时。
+
+## 配置迁移边界（0.7.0）
+
+shared/schemas/transfer 定义独立 BingTools-transfer v1 文件与严格 export/apply 参数；不改变 simulator v5 / motion v2 持久化结构。transfer:* IPC 使用相同窗口来源校验；页面仅传模块、实体 ID、范围与预览 token，不接收或指定文件路径。原生打开／保存对话框选择路径，独立 transfer-worker 线程执行有界读取、JSON 解析校验和导出序列化；32 MiB 文件上限。导出先写同目录临时文件再 rename，失败清理临时文件。
+
+主进程仅保留一份导入预览，绑定窗口与随机 token，重新选择、取消、成功导入或窗口关闭即释放；通过原有控制器串行队列再次检查停服状态并原子保存。客户重生成全部 ID、按 trim/lowercase 生成唯一名称；接口保持目标客户参数，先检查协议与匹配冲突。成功后使用现有 snapshot/state 事件更新页面。文件不含运行状态或日志，不执行文件内脚本，也不直接连接导入的串口路径；连接前仍要求系统枚举确认。
