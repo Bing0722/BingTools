@@ -21,7 +21,7 @@ export function UpdateTrigger() {
     if (snapshot && snapshot.mode !== 'unavailable' && !pending && ['idle', 'current', 'error'].includes(snapshot.phase) && !available) void runUpdate(() => window.app.updater.check())
   }
   return <>
-    <Tooltip label={[label, status].filter(Boolean).join(' · ')}><Button variant="ghost" size="sm" className="update-trigger" aria-label={[label, status].filter(Boolean).join(' · ')} aria-haspopup="dialog" aria-expanded={open} onClick={showUpdates}>
+    <Tooltip label={label}><Button variant="ghost" size="sm" className="update-trigger" aria-label={[label, status].filter(Boolean).join(' · ')} aria-haspopup="dialog" aria-expanded={open} onClick={showUpdates}>
       <RefreshCw size={16} className={checking ? 'update-checking-icon' : undefined} /><span>{label}</span>{available && <span className="update-dot" aria-hidden="true" />}
     </Button></Tooltip>
     <Dialog open={open} onOpenChange={setOpen} title={t('updates')} description={t('updateEntryHelp')} className="update-dialog"><UpdateSection /></Dialog>

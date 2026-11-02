@@ -9,7 +9,8 @@ import { localFontSchema, themeColors, type Preferences } from '../../../../shar
 
 export function AppearancePreferences() {
   const { t } = useTranslation()
-  const { preferences, saving, update } = useSettings()
+  const { preferences, saving: savingAll, savingLayout, update } = useSettings()
+  const saving = savingAll && !savingLayout
   const [fontChoice, setFontChoice] = useState(preferences.uiFont)
   const [family, setFamily] = useState(preferences.localFont)
   const [available, setAvailable] = useState<string[]>([])

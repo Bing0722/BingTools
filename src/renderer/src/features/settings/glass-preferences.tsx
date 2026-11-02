@@ -6,7 +6,8 @@ import { useSettings } from '@/stores/settings-store'
 
 export function GlassPreferences() {
   const { t } = useTranslation()
-  const { preferences, saving, update } = useSettings()
+  const { preferences, saving: savingAll, savingLayout, update } = useSettings()
+  const saving = savingAll && !savingLayout
   const [intensity, setIntensity] = useState(preferences.glassIntensity)
   useEffect(() => { setIntensity(preferences.glassIntensity) }, [preferences.glassIntensity])
   return <div className="glass-settings">

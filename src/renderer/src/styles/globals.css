@@ -108,7 +108,7 @@ textarea { resize:vertical; }
 .switch>span { display:block; width:14px; height:14px; border-radius:50%; background:#fff; transition:transform 120ms; }
 .switch[aria-checked="true"] { background:var(--accent); }
 .switch[aria-checked="true"]>span { transform:translateX(12px); }
-.tooltip { background:var(--foreground); color:var(--background); padding:5px 9px; font-size:11px; border-radius:5px; z-index:80; box-shadow:var(--shadow); }
+.tooltip { pointer-events:none; max-width:240px; line-height:1.5; overflow-wrap:anywhere; background:var(--foreground); color:var(--background); padding:5px 9px; font-size:11px; border-radius:5px; z-index:80; box-shadow:var(--shadow); }
 .tooltip-arrow { fill:var(--foreground); }
 .dialog-overlay { position:fixed; inset:0; background:#00000045; z-index:70; }
 .dialog-content { position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); width:min(540px,calc(100vw - 48px)); max-height:85vh; overflow:auto; border:1px solid var(--border); border-radius:12px; background:var(--surface); padding:26px; box-shadow:var(--shadow); z-index:71; }
@@ -275,7 +275,7 @@ textarea { resize:vertical; }
 @keyframes fade-out { from { opacity:1; } to { opacity:0; } }
 @keyframes dialog-in { from { opacity:0; transform:translate(-50%,-48%) scale(.98); } to { opacity:1; transform:translate(-50%,-50%) scale(1); } }
 @keyframes dialog-out { from { opacity:1; transform:translate(-50%,-50%) scale(1); } to { opacity:0; transform:translate(-50%,-48%) scale(.98); } }
-.page-scroll,.editor-fields { animation:content-enter var(--motion-panel) var(--motion-ease); }
+.editor-fields { animation:content-enter var(--motion-panel) var(--motion-ease); }
 .dialog-overlay[data-state="open"] { animation:fade-in var(--motion-fast) ease-out; }
 .dialog-overlay[data-state="closed"] { animation:fade-out var(--motion-fast) ease-in; }
 .dialog-content[data-state="open"] { animation:dialog-in 200ms var(--motion-ease); }
@@ -480,3 +480,10 @@ input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
 
 /* 深色面板只保留细边缘高光，避免大面积反光降低文字对比度。 */
 :root.dark[data-glass="true"], .dark .glass-demo { --glass-sheen:rgb(255 255 255 / calc(.02 + var(--glass-strength, .55) * .035)); }
+
+/* 页面进入不再从透明帧闪入；滚动条预留空间，避免设置页宽度跳变。 */
+.page-scroll:not(.simulator-scroll) { scrollbar-gutter:stable; }
+.simulator-title > div:first-child { min-width:0; }
+.simulator-title p { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.server-action { min-width:112px; }
+.server-controls input[aria-busy="true"] { background:color-mix(in srgb,var(--surface) 75%,var(--sidebar)); color:var(--foreground); border-color:var(--control-border); }

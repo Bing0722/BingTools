@@ -110,7 +110,7 @@ JSON 编辑采用本地 ResponseBodyEditor 和纯函数校验/美化，无新增
 
 仿真 store 的 pendingToggle 标记正在保存的接口，busy 继续串行保护命令；页面由 pendingToggle 区分整页操作和局部开关。接口开关完成时仅合并 enabled，保留等待期间的其他草稿输入。快照先到达时忽略该开关字段的短暂差异，避免“尚未保存”闪动。错误统一通知，配置警告仅在发生变化时通知。
 
-AppShell 的路由内容按 pathname 重挂载以触发 CSS 入场，标题栏和侧栏保持稳定；阻塞导航继续由 useBlocker 处理。Radix 利用 data-state 的 CSS 动画延迟卸载弹窗；日志面板不卸载列表，收起用 inert/aria-hidden 隔离键盘与辅助技术。减少动态效果时不依赖 animationend 才能完成业务操作。
+AppShell 的路由内容按 pathname 切换并恢复滚动位置，0.8.3 起不触发全页透明入场，标题栏和侧栏保持稳定；阻塞导航继续由 useBlocker 处理。Radix 利用 data-state 的 CSS 动画延迟卸载弹窗；日志面板不卸载列表，收起用 inert/aria-hidden 隔离键盘与辅助技术。减少动态效果时不依赖 animationend 才能完成业务操作。
 
 
 ## 客户复制与名称唯一性
@@ -192,3 +192,5 @@ Providers 从统一 colorPalettes 映射浅深主色，设置 --theme-accent、d
 0.8.1 在 BrowserWindow 与其 session 关闭系统拼写检查，HTML 根节点同时声明 spellcheck=false，使弹窗与普通输入继承一致行为；保留业务校验与原有安全设置。标题栏侧栏按钮沿用 AppShell 状态，窄窗以导航浮层状态反馈展开，不新增状态副本。
 
 0.8.2 settings v5 增加 glassEnabled 布尔值与 glassIntensity（1–100 整数）。v1–v4 显式迁移，默认 false/55，保留字体与主题；使用原有受控设置 IPC，保存成功才更新全局 CSS。GlassPreferences 仅保留未应用的强度草稿，预览独立 CSS 变量，不在拖动期间反复落盘。Providers 设置 data-glass 与 --glass-strength，关闭后 CSS 选择器退出生效。无依赖、画布循环或窗口透明权限新增。
+
+0.8.3 settings-store 区分布局保存；其他偏好可等待布局写入后继续，保持串行持久化。SimulatorPage 顶部监听草稿复用严格 CustomerInput 校验与 saveCustomer IPC，失焦／Enter 发起一次写入，通过 Promise 合并同次启动／路由触发；pendingListener 只锁定监听输入，启动动作等待完成。失败保留草稿及原配置，路由失败保留确认，接口编辑未保存保护沿用原逻辑。切换客户在 layout effect 同步监听字段，避免旧值先绘制一帧。无新 IPC 或持久化版本。

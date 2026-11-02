@@ -314,3 +314,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `node scripts/appearance-smoke.mjs` 回归通过，覆盖字体离线加载、六套主题色、快捷切换及旧设置迁移。检查 glass-light、glass-dark、glass-narrow 截图；高强度深色面状高光已降低，避免文字被反光淹没，并完成最终构建与专项复测。
 - 初次构建时发布说明尚未生成，补齐后通过；专项测试重置按钮的中文定位纠正为现有“恢复默认外观”，最终全流程通过。
 - 本机 macOS 验证；Windows/Linux 实机及本轮安装打包未验证。效果仅在应用内呈现，不透出桌面；未推送或发布。
+
+## 0.8.3 闪动、布局与悬浮提示（2026-11-02）
+
+- `pnpm build`（含 typecheck）、`pnpm lint`、`pnpm test` 通过；10 文件、74 项测试通过，版本与生产说明为 0.8.3。保留既有依赖注释和块体积提示，无新增依赖。
+- `node scripts/stability-smoke.mjs` 通过并在最终修改后复测：真实 Electron 开启玻璃后侧栏展开／收起期间监测外观控件 disabled 变化，确认没有整体禁用；页面无透明入场，展开导航不显示重复 Tooltip，折叠提示位于按钮右侧并支持 Esc。
+- 同一专项验证编辑端口后直接点击启动，真实本机 HTTP 访问新端口成功，顶部高度与启动前一致，没有临时保存按钮；通过阻塞临时文件写入验证保存失败保留草稿与原配置，恢复后路由切换自动保存，无多余确认弹窗；窄窗无文档横向溢出，无 renderer 错误。
+- `pnpm test:desktop` 完整回归通过：HTTP、接口热更新、日志脱敏、未保存接口保护、通知、语言、主题、窄窗、窗口关闭和重启。检查 `test-results/stable-running.png`：运行提示位于标题副行，顶部与接口区域边界稳定。
+- 本机 macOS 验证；Windows/Linux 实机闪屏、平台渲染及本轮打包安装未验证。没有推送或发布。

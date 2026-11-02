@@ -70,7 +70,7 @@ export function EndpointCards({ protocol = 'http', endpoints, busy, pendingToggl
         onDragOver={(event) => { if (dragged && !busy) { event.preventDefault(); event.dataTransfer.dropEffect = 'move'; setOver(entry.id) } }}
         onDrop={(event) => { event.preventDefault(); if (dragged) void move(dragged, entry.id); cancelDrag() }}>
         <div className="endpoint-card-top"><span className={`method method-${entry.method.toLowerCase()}`}>{protocol === 'tcp' ? 'TCP' : entry.method}</span><span className="badge">{entry.format === 'json' ? 'JSON' : t('text')}{protocol !== 'tcp' && ` · ${entry.status}`}</span>
-          <button type="button" className="card-grip" draggable={!busy && !preview} aria-disabled={busy} aria-label={t('moveEndpoint', { name: entry.name })} title={t('endpointCardsHelp')}
+          <button type="button" className="card-grip" draggable={!busy && !preview} aria-disabled={busy} aria-label={t('moveEndpoint', { name: entry.name })} aria-description={t('endpointCardsHelp')}
             onDragStart={(event) => {
               if (busy || saving.current) { event.preventDefault(); return }
               setDragged(entry.id)

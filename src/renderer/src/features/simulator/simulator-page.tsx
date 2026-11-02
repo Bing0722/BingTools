@@ -1,7 +1,7 @@
 import { NumberInput } from '@/components/ui/number-input'
 import { TransferDialog } from '../transfer/transfer-dialog'
 import { TcpSettings } from './tcp-settings'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useBlocker } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { Circle, Pencil, Play, Plus, Save, Server, Square, Trash2 } from 'lucide-react'
@@ -18,9 +18,9 @@ type Action = () => void | Promise<void>
 const equal = (left: unknown, right: unknown) => JSON.stringify(left) === JSON.stringify(right)
 export function SimulatorPage() {
   const { t } = useTranslation()
-  const { snapshot, ready, busy: working, pendingToggle, error, run } = useSimulator()
+  const { snapshot, ready, busy: working, pendingToggle, pendingListener, error, run } = useSimulator()
   // 开关仍串行保存，但不让整页进入禁用/变灰状态。
-  const busy = working && !pendingToggle
+  const busy = working && !pendingToggle && !pendingListener
   const customer = snapshot.config.customers.find((entry) => entry.id === snapshot.config.selectedCustomerId)
   const [draft, setDraft] = useState<Endpoint | null>(null)
   const [listener, setListener] = useState({ host: '', port: '' })
@@ -28,6 +28,8 @@ export function SimulatorPage() {
   const [customerForm, setCustomerForm] = useState<CustomerInput | null>(null)
   const [copySource, setCopySource] = useState('')
   const [deletion, setDeletion] = useState<'customer' | 'endpoint' | null>(null)
+  const listenerSave = useRef<Promise<boolean> | null>(null)
+  const [listenerFailed, setListenerFailed] = useState(false)
   const focusReturn = useRef<HTMLElement | null>(null)
   const locked = ['starting','running','stopping'].includes(snapshot.runtime.phase)
   const persisted = customer?.endpoints.find((entry) => entry.id === draft?.id)
@@ -37,17 +39,43 @@ export function SimulatorPage() {
   const blocker = useBlocker(dirty)
   const customerId = customer?.id
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const current = useSimulator.getState().snapshot.config.customers.find((entry) => entry.id === customerId)
     setDraft(null)
     setListener({ host: current?.host ?? '', port: current ? String(current.port) : '' })
   }, [customerId])
 
-  function guard(action: Action) {
-    if (useSimulator.getState().busy) return
-    if (dirty) { focusReturn.current = document.activeElement as HTMLElement; setPending(() => action) }
-    else void action()
+  async function saveListener(): Promise<boolean> {
+    if (listenerSave.current) return listenerSave.current
+    if (!customer || !listenerDirty) return true
+    if (locked || useSimulator.getState().busy) return false
+    // CustomerInput 为严格 schema，只传入允许保存的业务字段。
+    const input = customerInputSchema.safeParse({ id: customer.id, name: customer.name, host: listener.host, port: Number(listener.port), protocol: customer.protocol, tcp: customer.tcp })
+    if (!input.success) { setListenerFailed(true); reportError('INVALID_INPUT'); return false }
+    const submitted = listener
+    const operation = run(() => window.app.simulator.saveCustomer(input.data), undefined, undefined, true).then((saved) => {
+      setListenerFailed(!saved)
+      if (saved) setListener((current) => equal(current, submitted) ? { host: input.data.host, port: String(input.data.port) } : current)
+      return saved
+    }).finally(() => { listenerSave.current = null })
+    listenerSave.current = operation
+    return operation
   }
+  async function guard(action: Action) {
+    if (useSimulator.getState().busy && !listenerSave.current) return
+    if (!await saveListener()) return
+    if (endpointDirty) { focusReturn.current = document.activeElement as HTMLElement; setPending(() => action) }
+    else await action()
+  }
+  // 路由切换先完成监听参数保存；有效输入不弹出未保存确认。
+  useEffect(() => {
+    if (blocker.state !== 'blocked' || endpointDirty || listenerFailed) return
+    let alive = true
+    void saveListener().then((saved) => { if (alive && saved) blocker.proceed() })
+    return () => { alive = false }
+    // 保存函数读取本次阻塞时的草稿，生命周期由路由阻塞状态控制。
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [blocker.state, endpointDirty, listenerFailed])
   function setField<K extends keyof Endpoint>(key: K, value: Endpoint[K]) {
     setDraft((current) => current ? { ...current, [key]: value } : current)
   }
@@ -58,14 +86,12 @@ export function SimulatorPage() {
     if (!customer) return false
     // 先校验全部草稿，再开始写入，避免基础格式错误导致部分保存。
     const parsed = draft ? endpointSchema.safeParse(draft) : null
-    const customerInput = customerInputSchema.safeParse({ id: customer.id, name: customer.name, host: listener.host, port: Number(listener.port), protocol: customer.protocol, tcp: customer.tcp })
     if (endpointDirty && parsed && !parsed.success) {
       const issue = parsed.error.issues[0]
       reportError(['INVALID_JSON','INVALID_PATH','BODY_TOO_LARGE'].includes(issue.message) ? issue.message : issue.path[0] === 'path' ? 'INVALID_PATH' : 'INVALID_INPUT')
       return false
     }
-    if (listenerDirty && !customerInput.success) { reportError('INVALID_INPUT'); return false }
-    if (listenerDirty && customerInput.success && !await run(() => window.app.simulator.saveCustomer(customerInput.data), 'customerSaved')) return false
+    if (!await saveListener()) return false
     if (endpointDirty && parsed?.success) {
       if (!await run(() => window.app.simulator.saveEndpoint(customer.id, parsed.data), 'endpointSaved')) return false
       setDraft(parsed.data)
@@ -128,19 +154,18 @@ export function SimulatorPage() {
   if (!ready) return <div className="startup" role="status">{t('loading')}</div>
   const fullAddress = customer && draft ? `${customer.protocol}://${(listener.host || customer.host).includes(':') ? `[${listener.host || customer.host}]` : listener.host || customer.host}:${listener.port || customer.port}${customer.protocol === 'tcp' ? '' : draft.path}` : ''
   return <div className="simulator-page">
-    <div className="simulator-top"><div className="simulator-title"><div><h1>{t('simulator')}</h1><p>{t('manualStart')}</p></div><div className="simulator-title-actions"><TransferDialog module="simulator" customer={customer ? { id: customer.id, name: customer.name, interfaces: customer.endpoints } : undefined} hasCustomers={!!snapshot.config.customers.length} disabled={working || dirty} locked={locked} /><span className={`runtime-badge phase-${snapshot.runtime.phase}`} role="status"><Circle size={7} fill="currentColor" />{t(snapshot.runtime.phase)}</span></div></div>
+    <div className="simulator-top"><div className="simulator-title"><div><h1>{t('simulator')}</h1><p>{t(locked ? 'stopToEdit' : 'manualStart')}</p></div><div className="simulator-title-actions"><TransferDialog module="simulator" customer={customer ? { id: customer.id, name: customer.name, interfaces: customer.endpoints } : undefined} hasCustomers={!!snapshot.config.customers.length} disabled={busy || endpointDirty} locked={locked} /><span className={`runtime-badge phase-${snapshot.runtime.phase}`} role="status"><Circle size={7} fill="currentColor" />{t(snapshot.runtime.phase)}</span></div></div>
       <div className="server-controls"><label className="field customer-select"><span>{t('customer')}</span><select aria-label={t('customer')} disabled={locked || busy || !customer} value={customer?.id ?? ''} onChange={(event) => { const id = event.target.value; guard(async () => { await run(() => window.app.simulator.selectCustomer(id)) }) }}>{!snapshot.config.customers.length && <option value="" disabled>—</option>}{snapshot.config.customers.map((entry) => <option value={entry.id} key={entry.id}>{entry.name}</option>)}</select></label>
-        <div className="customer-buttons"><Button variant="outline" size="icon" disabled={locked || busy} aria-label={t('addCustomer')} onClick={() => openCustomer(false)}><Plus size={15} /></Button><Button className="customer-edit-button" title={t('editCustomer')} variant="ghost" size="sm" disabled={!customer || locked || busy} aria-label={t('editCustomer')} onClick={() => openCustomer(true)}><Pencil size={14} /><span>{t('editCustomer')}</span></Button><Button variant="ghost" size="icon" disabled={!customer || locked || busy} aria-label={t('deleteCustomer')} onClick={() => guard(() => setDeletion('customer'))}><Trash2 size={14} /></Button></div>
+        <div className="customer-buttons"><Button variant="outline" size="icon" disabled={locked || busy} aria-label={t('addCustomer')} onClick={() => openCustomer(false)}><Plus size={15} /></Button><Button className="customer-edit-button" variant="ghost" size="sm" disabled={!customer || locked || busy} aria-label={t('editCustomer')} onClick={() => openCustomer(true)}><Pencil size={14} /><span>{t('editCustomer')}</span></Button><Button variant="ghost" size="icon" disabled={!customer || locked || busy} aria-label={t('deleteCustomer')} onClick={() => guard(() => setDeletion('customer'))}><Trash2 size={14} /></Button></div>
         <label className="field protocol-field"><span>{t('connection')}</span><input readOnly aria-label={t('connection')} value={customer?.protocol === 'tcp' ? 'TCP' : 'WebAPI (HTTP)'} /></label>
-        <label className="field host-field"><span>{t('host')}</span><input aria-label={t('host')} disabled={!customer || locked || busy} value={listener.host} placeholder="127.0.0.1" onChange={(event) => setListener({ ...listener, host: event.target.value })} /></label>
-        <label className="field port-field"><span>{t('port')}</span><NumberInput aria-label={t('port')} type="number" min={1} max={65535} disabled={!customer || locked || busy} value={listener.port} placeholder="8080" onChange={(event) => setListener({ ...listener, port: event.target.value })} /></label>
-        {listenerDirty && <Button variant="outline" disabled={busy} onClick={() => void saveChanges()}><Save size={14} />{t('save')}</Button>}
+        <label className="field host-field"><span>{t('host')}</span><input aria-label={t('host')} disabled={!customer || locked || busy} readOnly={pendingListener} aria-busy={pendingListener || undefined} value={listener.host} placeholder="127.0.0.1" onChange={(event) => { setListenerFailed(false); setListener({ ...listener, host: event.target.value }) }} onBlur={() => void saveListener()} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void saveListener() } }} /></label>
+        <label className="field port-field"><span>{t('port')}</span><NumberInput aria-label={t('port')} type="number" min={1} max={65535} disabled={!customer || locked || busy} readOnly={pendingListener} aria-busy={pendingListener || undefined} value={listener.port} placeholder="8080" onChange={(event) => { setListenerFailed(false); setListener({ ...listener, port: event.target.value }) }} onBlur={() => void saveListener()} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); void saveListener() } }} /></label>
         <Button className="server-action" disabled={!customer || busy} variant={locked ? 'outline' : 'default'} onClick={() => locked ? void run(() => window.app.simulator.stop()) : guard(async () => { if (customer) await run(() => window.app.simulator.start(customer.id)) })}>{locked ? <Square size={14} /> : <Play size={14} />}{t(locked ? 'stop' : 'start')}</Button>
-      </div>{locked && <p className="listener-hint">{t('stopToEdit')}</p>}
+      </div>
       {error === 'CONNECTION_FAILED' && <Button variant="ghost" size="sm" onClick={() => void run(() => window.app.simulator.getSnapshot())}>{t('retry')}</Button>}
     </div>
     <div className="simulator-workspace">{!customer ? <div className="empty-state"><Server size={32} /><h2>{t('noCustomers')}</h2><p>{t('noCustomersHelp')}</p><Button onClick={() => openCustomer(false)}><Plus size={15} />{t('addCustomer')}</Button></div> : <>
-      <EndpointCards protocol={customer.protocol} key={customer.id} endpoints={customer.endpoints} busy={working} pendingToggle={pendingToggle}
+      <EndpointCards protocol={customer.protocol} key={customer.id} endpoints={customer.endpoints} busy={working && !pendingListener} pendingToggle={pendingToggle}
         onAdd={newEndpoint} onEdit={(entry) => guard(() => setDraft(entry))}
         onToggle={(entry) => guard(async () => { await run(() => window.app.simulator.setEndpointEnabled(customer.id, entry.id, !entry.enabled), undefined, entry.id) })}
         onReorder={(ids) => run(() => window.app.simulator.reorderEndpoints(customer.id, ids))} />
@@ -158,7 +183,7 @@ export function SimulatorPage() {
         <div className="editor-footer"><Button variant="ghost" disabled={working} onClick={() => setDeletion('endpoint')}><Trash2 size={15} />{t('deleteEndpoint')}</Button><span className="muted">{t(endpointDirty ? 'unsaved' : 'saved')}</span><Button variant="outline" disabled={working} onClick={closeEndpoint}>{t('close')}</Button><Button disabled={working || !dirty} onClick={() => void saveChanges().then((saved) => { if (saved) setDraft(null) })}><Save size={15} />{t(busy ? 'saving' : 'saveEndpoint')}</Button></div>
       </div>}
     </Dialog>
-    <Dialog open={!!pending || blocker.state === 'blocked'} onOpenChange={(open) => { if (!open) cancelNavigation() }} title={t('unsavedTitle')} description={t('unsavedHelp')}>
+    <Dialog open={!!pending || (blocker.state === 'blocked' && (endpointDirty || listenerFailed))} onOpenChange={(open) => { if (!open) cancelNavigation() }} title={t('unsavedTitle')} description={t('unsavedHelp')}>
       <div className="dialog-actions"><Button variant="ghost" disabled={busy} onClick={cancelNavigation}>{t('cancel')}</Button><Button variant="outline" disabled={busy} onClick={() => void continueNavigation(false)}>{t('discard')}</Button><Button disabled={busy} onClick={() => void continueNavigation(true)}>{t('save')}</Button></div>
     </Dialog>
     <Dialog className="tcp-customer-dialog" open={!!customerForm} onOpenChange={(open) => { if (!open) closeCustomer() }} title={t(customerForm && snapshot.config.customers.some((entry) => entry.id === customerForm.id) ? 'editCustomer' : 'addCustomer')} description={t('customerHelp')}>

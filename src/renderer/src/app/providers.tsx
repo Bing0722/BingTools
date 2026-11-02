@@ -47,5 +47,5 @@ export function Providers({ children }: { children: ReactNode }) {
     root.style.setProperty('--glass-strength', String(preferences.glassIntensity / 100))
   }, [preferences.glassEnabled, preferences.glassIntensity])
   if (!ready) return <div className="startup" role="status">{t('loading')}</div>
-  return <TooltipProvider delayDuration={300}>{children}<ToastHost /></TooltipProvider>
+  return <TooltipProvider delayDuration={700} skipDelayDuration={0}>{children}<ToastHost /></TooltipProvider>
 }
