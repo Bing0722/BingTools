@@ -1,3 +1,6 @@
+/**
+ * 更新流程状态机：把后端能力转换为可订阅快照，统一限制操作顺序及失败重试。
+ */
 import type { UpdateSnapshot } from '../../shared/contracts/updater'
 export interface UpdateBackend {
   check(): Promise<string | { version: string; releaseNotes?: string; releaseDate?: string } | undefined>
@@ -18,6 +21,7 @@ export class UpdateController {
     this.state = { ...this.state, ...patch, revision: this.state.revision + 1 }
     for (const listener of this.listeners) listener(this.snapshot())
   }
+  // 主进程也限制并发，不能仅依赖按钮禁用来阻止重复检查、下载或安装。
   private assertAvailable() {
     if (this.state.mode === 'unavailable') throw new Error('UPDATE_PACKAGED_ONLY')
     if (['checking', 'downloading', 'installing'].includes(this.state.phase)) throw new Error('UPDATE_BUSY')
@@ -43,6 +47,7 @@ export class UpdateController {
   async download(): Promise<UpdateSnapshot> {
     this.assertAvailable()
     if (this.state.canInstall === false) throw new Error('UPDATE_MANUAL_ONLY')
+    // 下载失败可沿用已发现的版本重试；其他阶段必须先完成检查。
     if (this.state.phase !== 'available' && !(this.state.phase === 'error' && this.state.error === 'UPDATE_DOWNLOAD_FAILED' && this.state.version)) throw new Error('UPDATE_CHECK_FIRST')
     this.set({ phase: 'downloading', error: undefined, progress: 0 })
     try {
@@ -51,6 +56,7 @@ export class UpdateController {
     } catch { this.set({ phase: 'error', error: 'UPDATE_DOWNLOAD_FAILED' }) }
     return this.snapshot()
   }
+  // 安装器可能在 install 返回后异步失败；恢复退出拦截，允许用户继续正常使用应用。
   installFailed(): void {
     if (this.state.phase !== 'installing') return
     this.recoverInstall()
@@ -62,12 +68,14 @@ export class UpdateController {
     if (this.state.mode === 'demo') throw new Error('UPDATE_DEMO_ONLY')
     if (this.state.phase !== 'downloaded' && !(this.state.phase === 'error' && this.state.error === 'UPDATE_INSTALL_FAILED')) throw new Error('UPDATE_DOWNLOAD_FIRST')
     this.set({ phase: 'installing', error: undefined })
+    // 安装前由主入口停服并等待配置保存，完成准备后才交给安装器退出应用。
     try { await this.prepareInstall(); this.backend.install() }
     catch { this.installFailed() }
     return this.snapshot()
   }
 }
 export function demoBackend(version: string): UpdateBackend {
+  // 演示仅构造下一补丁版本和计时进度，不请求网络，也不下载或安装任何文件。
   const sampleVersion = version.replace(/^(\d+)\.(\d+)\.(\d+).*$/, (_all, major, minor, patch) => `${major}.${minor}.${Number(patch) + 1}`)
   const pause = () => new Promise<void>((resolve) => setTimeout(resolve, 180))
   return {

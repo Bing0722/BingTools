@@ -1,6 +1,8 @@
+/* 全局样式入口：先定义语义变量，再组合布局、控件与业务区域；末尾包含外观和动效覆盖。 */
 @import "tailwindcss";
 @custom-variant dark (&:where(.dark, .dark *));
 
+/* 浅色主题是默认值；深色模式只覆盖变量，业务组件继续使用相同语义名称。 */
 :root {
   --background: #fff; --sidebar: #f6f6f7; --surface: #fff;
   --foreground: #202024; --muted-foreground: #62626b; --border: #e4e4e7;
@@ -22,6 +24,7 @@
   --tone-blue-bg: #242e40; --tone-blue-fg: #9bb7e1;
   --tone-amber-bg: #342e25; --tone-amber-fg: #d4bd97;
 }
+/* 将 CSS 语义变量映射为 Tailwind 主题，工具类与本地组件共享同一套颜色。 */
 @theme inline {
   --color-background: var(--background); --color-foreground: var(--foreground);
   --color-sidebar: var(--sidebar); --color-border: var(--border);
@@ -29,9 +32,11 @@
   --color-primary-foreground: var(--primary-foreground); --color-accent: var(--accent);
 }
 * { box-sizing: border-box; }
+/* 根节点禁止整窗滚动；由内容区、接口区和日志各自管理滚动，避免互相挤压。 */
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: var(--background); color: var(--foreground); font-family:var(--font-ui,system-ui); font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
 button, input, select, textarea { font: inherit; }
+/* 标题栏可拖拽，但交互控件必须显式排除，否则点击会被窗口拖动吞掉。 */
 button, a, input, select, textarea { -webkit-app-region: no-drag; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
@@ -68,6 +73,7 @@ svg { flex-shrink: 0; }
 .nav-item.active { background: var(--selected); color: var(--foreground); font-weight: 550; }
 .sidebar-spacer { flex: 1; min-height: 0; }
 .sidebar-footer { margin: 0 8px; padding: 8px 0 14px; border-top: 1px solid var(--border); }
+/* Grid/Flex 子项要允许缩小到内容固有尺寸以下，配合 overflow 才能实现独立滚动。 */
 .main-panel { display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .page-header { height: 56px; padding: 0 22px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 12px; flex-shrink: 0; -webkit-app-region: drag; }
 .page-header .sidebar-toggle { width:36px; height:34px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--muted-foreground); transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),transform var(--motion-fast); }
@@ -78,6 +84,7 @@ svg { flex-shrink: 0; }
 .sidebar-toggle-arrow { transform-origin:14.5px 12px; transition:transform var(--motion-panel) var(--motion-ease); }
 .sidebar-toggle[data-collapsed="true"] .sidebar-toggle-arrow { transform:rotate(180deg); }
 .header-title { font-size: 12px; font-weight: 500; }
+/* 平台专属安全留白：macOS 避让交通灯按钮，Windows 避让原生窗口控制区。 */
 .platform-mac > .page-header { padding-left: 96px; }
 .platform-win > .page-header { padding-right: max(160px, calc(100vw - env(titlebar-area-width, 100vw) + 12px)); }
 .page-scroll { flex: 1; min-height: 0; overflow: auto; }
@@ -251,6 +258,7 @@ textarea { resize:vertical; }
   .page-container { padding:24px; }
 }
 @media(max-height:650px) { .simulator-title p { display:none; } .simulator-title { margin-bottom:8px; } .simulator-top { padding:10px 16px; } .log-panel { height:140px; min-height:90px; } }
+/* 统一遵守系统减少动态效果偏好；业务完成不能依赖动画结束事件。 */
 @media(prefers-reduced-motion:reduce) { *,*::before,*::after { animation:none!important; transition:none!important; scroll-behavior:auto!important; } }
 
 /* 更新页复用设置页与语义色；演示模式始终明确标识。 */
@@ -490,6 +498,7 @@ input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
 
 /* 导航标记保持挂载，只随路由移动；页面不从透明帧开始。 */
 .sidebar { position:relative; }
+/* 常驻导航背景的位置由 AppSidebar 实测后设置，CSS 只负责插值过渡。 */
 .nav-selection { position:absolute; left:8px; right:8px; top:0; border-radius:8px; background:var(--selected); pointer-events:none; }
 .nav-selection.is-ready { transition:transform 280ms var(--motion-ease),height var(--motion-panel),background-color var(--motion-fast); }
 .sidebar .nav-item { position:relative; z-index:1; }

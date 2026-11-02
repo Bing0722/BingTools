@@ -1,3 +1,6 @@
+/**
+ * TCP 客户参数表单：只编辑配置，不连接网络；模板用于预填可继续修改的协议字段。
+ */
 import { NumberInput } from '@/components/ui/number-input'
 import { useTranslation } from 'react-i18next'
 import { defaultTcpSettings, defaultTcpLengthHeader, type CustomerInput } from '../../../../shared/schemas/simulator'

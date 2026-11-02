@@ -1,3 +1,6 @@
+/**
+ * 统一标题栏：展示页面名和全局操作，平台按钮留白与可拖拽区域由样式负责。
+ */
 import { UpdateTrigger } from '@/features/updater/update-trigger'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'

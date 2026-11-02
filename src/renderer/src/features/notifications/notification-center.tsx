@@ -1,3 +1,6 @@
+/**
+ * 通知视图：历史与轻提示使用同一内存 store，显示时才翻译消息代码。
+ */
 import { useEffect, useRef, useState } from 'react'
 import { Bell, CheckCheck, Info, TriangleAlert, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -25,6 +28,7 @@ export function ToastHost() {
   const position = useSettings((state) => state.preferences.notificationPosition)
   useEffect(() => {
     if (!toasts.length) return
+    // 只在存在轻提示时启用一个扫描计时器；到期仅关闭轻提示，历史仍留在通知中心。
     const timer = setInterval(() => { for (const item of useNotifications.getState().toasts) if (item.expires <= Date.now()) dismiss(item.id) }, 500)
     return () => clearInterval(timer)
   }, [toasts.length, dismiss])

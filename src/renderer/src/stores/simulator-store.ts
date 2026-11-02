@@ -1,3 +1,6 @@
+/**
+ * 服务器共享展示状态：接收权威快照和增量日志，用 revision 避免旧结果覆盖新状态。
+ */
 import { create } from 'zustand'
 import type { SimulatorEvent, SimulatorSnapshot } from '../../../shared/contracts/simulator'
 import type { Result } from '../../../shared/contracts/app-api'
@@ -13,6 +16,7 @@ interface State {
 export const useSimulator = create<State>((set, get) => ({
   snapshot: initial, ready: false, busy: false,
   apply: (snapshot) => {
+    // IPC 命令返回值和事件可能交错抵达，只接受不旧于当前展示版本的快照。
     if (snapshot.revision < get().snapshot.revision) return
     if (snapshot.warning && snapshot.warning !== get().snapshot.warning) useNotifications.getState().push(snapshot.warning, 'error')
     set({ snapshot, ready: true })
@@ -27,6 +31,7 @@ export const useSimulator = create<State>((set, get) => ({
   },
   run: async (operation, success, pendingToggle, pendingListener) => {
     if (get().busy) return false
+    // busy 阻止命令重入；pendingToggle/pendingListener 让页面只给正在保存的控件忙碌反馈。
     set({ busy: true, pendingToggle, pendingListener, error: undefined })
     try {
       const result = await operation()
@@ -61,5 +66,6 @@ export function connectSimulator(): () => void {
     buffer.length = 0
     if (alive) { useSimulator.setState({ ready: true, error: 'CONNECTION_FAILED' }); useNotifications.getState().push('CONNECTION_FAILED', 'error') }
   })
+  // 取消事件监听之外，还用 alive 阻止已发出但尚未返回的快照更新已卸载的页面环境。
   return () => { alive = false; unsubscribe() }
 }

@@ -1,3 +1,6 @@
+/**
+ * TCP 编解码：兼容结束符和长度头两种分帧方式，收发共用长度计算规则。
+ */
 import { BODY_LIMIT, type defaultTcpSettings } from '../../shared/schemas/simulator'
 type Settings = typeof defaultTcpSettings
 
@@ -13,6 +16,7 @@ export function encodeTcpResponse(body: string, settings: Settings): Buffer {
   const bytes = Buffer.from(body), marker = Buffer.from(settings.delimiter, 'hex'), header = settings.lengthHeader
   if (bytes.length > BODY_LIMIT) throw new Error('PAYLOAD_TOO_LARGE')
   if (!header?.wrapResponse) return Buffer.concat([bytes, settings.appendDelimiter ? marker : Buffer.alloc(0)])
+  // 自动包装强制携带尾标；声明长度按所选单位计数，并按 scope 加上固定包装开销。
   const count = (header.unit === 'bytes' ? bytes.length : Array.from(body).length) + overhead(settings, marker)
   const prefix = count.toString(header.radix === 'hex' ? 16 : 10).toUpperCase()
   if (prefix.length > header.width) throw new Error('TCP_LENGTH_OVERFLOW')
@@ -22,6 +26,7 @@ export function encodeTcpResponse(body: string, settings: Settings): Buffer {
 /** 每连接一份解码器。长度头模式定位到精确结束位置后才校验尾标，不搜索正文中的尾标。 */
 export class TcpFrameDecoder {
   private buffer = Buffer.alloc(0)
+  // expected 是正文的目标计数；scanned 是已扫描字节，characters 是完整 Unicode 码点数。
   private expected?: number
   private scanned = 0
   private characters = 0
@@ -37,10 +42,12 @@ export class TcpFrameDecoder {
   push(chunk: Buffer, emit: (body: Buffer) => boolean | void) {
     this.buffer = Buffer.concat([this.buffer, chunk])
     const header = this.settings.lengthHeader
+    // 循环拆出粘连的完整帧；遇到半包直接返回，缓存和扫描游标留待下一次 push。
     while (true) {
       if (!header) {
         const end = this.buffer.indexOf(this.marker)
         if (end < 0) {
+          // 未找到尾标时允许保留尾标长度减一的余量，以容纳跨 chunk 的尾标前半段。
           if (this.buffer.length > BODY_LIMIT + this.marker.length - 1) throw new Error('PAYLOAD_TOO_LARGE')
           return
         }
@@ -58,6 +65,7 @@ export class TcpFrameDecoder {
         if (!this.buffer.subarray(this.prefix.length + header.width, bodyOffset).equals(this.suffix)) throw new Error('TCP_INVALID_HEADER')
         const prefix = this.buffer.subarray(this.prefix.length, this.prefix.length + header.width).toString('latin1')
         if (!(header.radix === 'hex' ? /^[0-9A-Fa-f]+$/ : /^[0-9]+$/).test(prefix)) throw new Error('TCP_INVALID_LENGTH')
+        // 整包长度先扣除包装开销，之后字节与字符两种模式都只定位正文结尾。
         this.expected = parseInt(prefix, header.radix === 'hex' ? 16 : 10) - overhead(this.settings, this.marker)
         if (!Number.isSafeInteger(this.expected) || this.expected < 0) throw new Error('TCP_INVALID_LENGTH')
         if (this.expected > BODY_LIMIT) throw new Error('PAYLOAD_TOO_LARGE')
@@ -81,11 +89,13 @@ export class TcpFrameDecoder {
         }
         size = this.scanned
       }
+      // 只有定位到声明长度之后才验证尾标，因此正文里出现同名标志不会提前结束。
       const end = bodyOffset + size
       if (this.buffer.length < end + this.marker.length) return
       if (!this.buffer.subarray(end, end + this.marker.length).equals(this.marker)) throw new Error('TCP_INVALID_END_MARKER')
       const body = this.buffer.subarray(bodyOffset, end)
       this.buffer = this.buffer.subarray(end + this.marker.length)
+      // 消费一帧后重置长度及字符游标；剩余字节继续作为下一帧处理。
       this.expected = undefined; this.scanned = 0; this.characters = 0
       if (emit(body) === false) return
     }

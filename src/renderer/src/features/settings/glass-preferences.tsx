@@ -1,3 +1,6 @@
+/**
+ * 玻璃质感设置：开关即时保存，强度先局部预览，点击应用才同步到全局。
+ */
 import { useEffect, useState, type CSSProperties } from 'react'
 import { Sparkles } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +11,7 @@ export function GlassPreferences() {
   const { t } = useTranslation()
   const { preferences, saving: savingAll, savingLayout, update } = useSettings()
   const saving = savingAll && !savingLayout
+  // 滑块只改变本地预览变量，点击应用才持久化并改变整个工作台。
   const [intensity, setIntensity] = useState(preferences.glassIntensity)
   useEffect(() => { setIntensity(preferences.glassIntensity) }, [preferences.glassIntensity])
   return <div className="glass-settings">

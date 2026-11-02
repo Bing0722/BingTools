@@ -1,3 +1,6 @@
+/**
+ * 下拉菜单基础组件：复用 Radix 键盘导航与焦点管理，浮层通过 Portal 避免被布局裁切。
+ */
 import * as Primitive from '@radix-ui/react-dropdown-menu'
 import type { ReactElement, ReactNode } from 'react'
 export function DropdownMenu({ trigger, children }: { trigger: ReactElement; children: ReactNode }) {

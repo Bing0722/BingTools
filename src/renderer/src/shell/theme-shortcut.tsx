@@ -1,3 +1,6 @@
+/**
+ * 主题快捷入口：复用正式设置 API，与设置页共享已保存偏好和局部忙碌反馈。
+ */
 import * as Menu from '@radix-ui/react-dropdown-menu'
 import { Check, Monitor, Moon, Sun } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

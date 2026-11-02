@@ -1,3 +1,6 @@
+/**
+ * 受控弹窗基础组件：复用 Radix 焦点约束、遮罩和关闭行为，由业务层决定能否关闭。
+ */
 import * as Primitive from '@radix-ui/react-dialog'
 import { X } from 'lucide-react'
 import { useRef, type ReactNode } from 'react'

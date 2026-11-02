@@ -1,3 +1,6 @@
+/**
+ * 日志面板会话偏好：两类仿真各自保留筛选、折叠、暂停和滚动位置。
+ */
 import { create } from 'zustand'
 
 type LogView = { collapsed: boolean; paused: boolean; query: string; filter: string; scrollTop: number }

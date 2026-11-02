@@ -1,8 +1,12 @@
+/**
+ * 串口分帧器：把连续字节流按结束符、固定长度或空闲间隔转换为完整消息。
+ */
 import { SERIAL_FRAME_LIMIT, type SerialSettings } from '../../shared/schemas/motion'
 
 /** 串口 data 事件不是消息边界；缓存半包并拆分粘包，始终限制内存。 */
 export class SerialFramer {
   private buffer = Buffer.alloc(0)
+  // 超长帧进入丢弃状态，直到找到下一消息边界；不能把超长帧尾片误当成新指令。
   private discarding = false
   private timer?: ReturnType<typeof setTimeout>
   constructor(private settings: SerialSettings, private frame: (value: Buffer) => void, private overflow: () => void) {}
@@ -20,6 +24,7 @@ export class SerialFramer {
           if (this.discarding) { this.buffer = this.buffer.subarray(index + delimiter.length); this.discarding = false }
           else this.consume(index, delimiter.length)
         }
+        // 只保留可能跨块的结束符前半段，既能找到边界，又不会持续缓存被丢弃的正文。
         if (this.discarding) this.buffer = this.buffer.subarray(Math.max(0, this.buffer.length - delimiter.length + 1))
       }
       if (this.buffer.length > SERIAL_FRAME_LIMIT + (this.settings.framing === 'delimiter' ? this.settings.delimiter.length / 2 : 0)) {
@@ -29,8 +34,10 @@ export class SerialFramer {
       }
       if (this.discarding && this.settings.framing === 'idle') this.buffer = Buffer.alloc(0)
     }
+    // 每次 feed 都重新计时；只有最后一段数据之后持续空闲达到阈值，才产生一帧。
     if (this.settings.framing === 'idle' && (this.buffer.length || this.discarding)) this.timer = setTimeout(() => { if (!this.discarding) this.consume(this.buffer.length, 0); this.discarding = false }, this.settings.idleMs)
   }
+  // 先从缓存移除正文及分帧尾符，再交付独立 Buffer；空帧不参与业务匹配。
   private consume(length: number, suffix: number) {
     const frame = Buffer.from(this.buffer.subarray(0, length))
     this.buffer = this.buffer.subarray(length + suffix)

@@ -1,3 +1,6 @@
+/**
+ * 串口共享展示状态：配置状态与高频日志分开更新，避免日志推动整个表单重绘。
+ */
 import { create } from 'zustand'
 import { defaultMotionConfig, SERIAL_LOG_LIMIT, type MotionCommand, type MotionEvent, type MotionLog, type MotionState } from '../../../shared/schemas/motion'
 import { useNotifications } from './notification-store'
@@ -8,6 +11,7 @@ interface State {
 export const useMotion = create<State>((set, get) => ({
   state: { revision: -1, config: defaultMotionConfig, phase: 'stopped', customerId: null }, logs: [], ready: false, busy: false,
   apply: (event) => {
+    // clear 事件只删除清空边界之前的目标客户记录；其他客户和之后的新记录继续保留。
     if (event.type === 'state') {
       if (event.state.revision < get().state.revision) return
       if (event.state.error && event.state.error !== get().state.error) useNotifications.getState().push(event.state.error, 'error')
@@ -36,6 +40,7 @@ export const useMotion = create<State>((set, get) => ({
     } finally { set({ busy: false }) }
   },
 }))
+// 先订阅并暂存事件，再读取初始快照；状态按 revision、日志按 ID 去重。
 export function connectMotion() {
   let alive = true, ready = false
   const events: MotionEvent[] = []
@@ -51,6 +56,7 @@ export function connectMotion() {
     useMotion.setState({ logs, ready: true, error: undefined })
     useMotion.getState().apply({ type: 'state', state })
     ready = true
+    // 快照之后重放初始化期间的事件，弥合订阅与快照返回之间的时间窗口。
     for (const event of events) useMotion.getState().apply(event)
   }).catch(() => { ready = true; if (alive) useMotion.setState({ ready: true, error: 'CONNECTION_FAILED' }) })
   return () => { alive = false; dispose() }

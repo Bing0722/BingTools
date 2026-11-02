@@ -1,3 +1,6 @@
+/**
+ * 可复用更新面板：根据共享状态展示阶段、说明与重试入口，安装前显示确认弹窗。
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowRight, Check, CircleCheck, Download, ExternalLink, RefreshCw, Rocket, TriangleAlert } from 'lucide-react'
@@ -10,11 +13,13 @@ export function UpdateSection() {
   const [confirm, setConfirm] = useState(false)
   const phase = snapshot?.phase ?? 'idle'
   const busy = pending || ['checking', 'downloading', 'installing'].includes(phase)
+  // 按失败阶段恢复对应按钮，避免下载失败后重新检查而丢掉已发现的目标版本。
   const downloadRetry = phase === 'error' && snapshot?.error === 'UPDATE_DOWNLOAD_FAILED'
   const installRetry = phase === 'error' && snapshot?.error === 'UPDATE_INSTALL_FAILED'
   const Icon = phase === 'error' ? TriangleAlert : phase === 'current' || phase === 'downloaded' ? CircleCheck : phase === 'checking' ? RefreshCw : phase === 'downloading' ? Download : Rocket
   const title = phase === 'available' ? 'updateReadyTitle' : phase === 'current' ? 'updateCurrentTitle' : phase === 'idle' ? 'updateIdleTitle' : `update_${phase}`
   const help = { idle: 'updateIdleHelp', checking: 'updateCheckingHelp', available: 'updateAvailableHelp', current: 'updateCurrentHelp', downloading: 'updateDownloadingHelp', downloaded: 'updateDownloadedHelp', installing: 'updateInstallingHelp', error: 'updateErrorHelp' }[phase]
+  // 阶段条只是从主进程 phase 派生的展示状态，不另起一套更新流程。
   const step = ['downloaded', 'installing'].includes(phase) || installRetry ? 2 : ['available', 'downloading'].includes(phase) || downloadRetry ? 1 : 0
   return <section className="settings-section update-section" aria-label={t('updates')}>
     <h2>{t('updates')}</h2>

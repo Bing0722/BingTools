@@ -1,3 +1,6 @@
+/**
+ * 侧栏导航：选中项由当前路由决定，常驻标记跟随实际导航项位置移动。
+ */
 import { useLayoutEffect, useRef } from 'react'
 import { ThemeShortcut } from './theme-shortcut'
 import { Layers3, Server, Settings2, Cable } from 'lucide-react'
@@ -20,6 +23,7 @@ export function AppSidebar({ collapsed, onNavigate }: { collapsed: boolean; onNa
       indicator!.style.transform = `translateY(${rect.top - parent.top}px)`
       indicator!.style.height = `${rect.height}px`
     }
+    // 首帧先定位再启用过渡，避免选中背景从默认位置飞入；尺寸变化时重新测量。
     position()
     frame = requestAnimationFrame(() => indicator.classList.add('is-ready'))
     const observer = new ResizeObserver(position)

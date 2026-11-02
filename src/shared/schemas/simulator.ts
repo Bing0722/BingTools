@@ -1,5 +1,9 @@
+/**
+ * HTTP/TCP 共用数据规则：同时用于表单、IPC 和配置文件，防止仅依赖 TypeScript 类型。
+ */
 import { z } from 'zod'
 
+// 按线上 UTF-8 字节限制正文；预览上限独立且更小，避免日志保留完整大正文。
 export const BODY_LIMIT = 1024 * 1024
 export const PREVIEW_LIMIT = 8 * 1024
 export const methods = ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS'] as const
@@ -7,6 +11,7 @@ export const endpointSchema = z.object({
   id: z.string().uuid(), name: z.string().trim().min(1).max(100),
   path: z.string().max(2048).regex(/^\/(?!\/)[^\s?#]*$/), method: z.enum(methods),
   format: z.enum(['json', 'text']), status: z.number().int().min(200).max(599),
+  // 中文和 emoji 的字节数通常大于 JS 字符串长度，因此不能用 length 判断线上大小。
   body: z.string().refine((value) => new TextEncoder().encode(value).length <= BODY_LIMIT, 'BODY_TOO_LARGE'),
   enabled: z.boolean(),
   responseDelay: z.object({ enabled: z.boolean(), ms: z.number().int().min(0).max(60000) }).strict().optional(),
@@ -21,6 +26,7 @@ export const endpointSchema = z.object({
   } catch { context.addIssue({ code: 'custom', path: ['path'], message: 'INVALID_PATH' }) }
 })
 // TCP 流按结束符分帧；字段路径仅做对象属性读取，不执行表达式。
+// 长度头是固定宽度 ASCII 数字文本；有此配置才启用长度定位，否则沿用结束符模式。
 export const tcpLengthHeaderSchema = z.object({
   width: z.number().int().min(1).max(10),
   prefix: z.string().max(32).optional(), suffix: z.string().max(32).optional(),
@@ -52,6 +58,7 @@ export const customerInputSchema = z.object({
   host: z.union([z.ipv4(), z.ipv6()]), port: z.number().int().min(1).max(65535), protocol: z.enum(['http', 'tcp']), tcp: tcpSettingsSchema.optional(),
 }).strict()
 export const customerSchema = customerInputSchema.extend({ endpoints: z.array(endpointSchema).max(500) }).superRefine((customer, context) => {
+  // HTTP 以方法＋路径判重，TCP 以接口名称判重；两种协议都禁止重复接口 ID。
   const routes = new Set<string>()
   const ids = new Set<string>()
   for (const endpoint of customer.endpoints) {
@@ -63,6 +70,7 @@ export const customerSchema = customerInputSchema.extend({ endpoints: z.array(en
 export const simulatorConfigSchema = z.object({
   schemaVersion: z.literal(5), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(customerSchema).max(100),
 }).strict().superRefine((config, context) => {
+  // 所选客户必须存在于同一配置中，避免加载后出现悬空选择。
   const ids = config.customers.map((customer) => customer.id)
   if (new Set(ids).size !== ids.length || (config.selectedCustomerId && !ids.includes(config.selectedCustomerId))) context.addIssue({ code: 'custom', message: 'INVALID_INPUT' })
 })

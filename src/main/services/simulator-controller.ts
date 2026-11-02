@@ -1,3 +1,7 @@
+/**
+ * 服务器业务入口：统一管理客户、接口、HTTP/TCP 服务及配置事件。
+ * execute 负责排队，apply 负责业务校验，repository 负责持久化。
+ */
 import type { TransferData } from '../../shared/schemas/transfer'
 import { mergeSimulatorTransfer } from './transfer-data'
 import { randomUUID } from 'node:crypto'
@@ -13,6 +17,7 @@ export class SimulatorController {
   private queue: Promise<void> = Promise.resolve()
   private listeners = new Set<(event: SimulatorEvent) => void>()
   private logs = new LogBuffer()
+  // 快照与增量日志共用递增序号，页面可识别异步返回的过期数据。
   private revision = 0
   private closing = false
   private callbacks: ConstructorParameters<typeof HttpSimulator>[0]
@@ -35,6 +40,7 @@ export class SimulatorController {
   private publish() { this.revision++; this.emit({ type: 'snapshot', snapshot: this.snapshot() }) }
   resume(): void { this.closing = false }
   async shutdown(): Promise<void> {
+    // 先拒绝后续命令，再等待已有操作完成，最后停服并等待落盘。
     this.closing = true
     await this.queue
     await this.service.stop()
@@ -51,6 +57,7 @@ export class SimulatorController {
     this.queue = operation.then(() => undefined, () => undefined)
     return operation
   }
+  // 即使绕过 IPC 直接调用控制器，也重新验证输入，所有命令按进入队列的顺序执行。
   execute(command: SimulatorCommand): Promise<SimulatorSnapshot> {
     const operation = this.queue.then(async () => {
       if (this.closing) throw new Error('CLOSING')
@@ -63,6 +70,7 @@ export class SimulatorController {
     return operation
   }
   private async apply(command: SimulatorCommand): Promise<void> {
+    // 启停和清日志不修改配置文件；其余分支先操作仓库返回的独立副本。
     if (command.type === 'stop') { await this.service.stop(); return }
     if (command.type === 'clearLogs') { this.logs.clear(command.customerId); this.publish(); return }
     const config = this.repository.get()
@@ -86,6 +94,7 @@ export class SimulatorController {
       if (command.type === 'start') {
         if (config.selectedCustomerId !== customer.id) throw new Error('INVALID_INPUT')
         if (busy) throw new Error('ALREADY_RUNNING')
+        // 只有启动时选择协议实现；运行中只热更新接口，不切换监听协议。
         this.service = customer.protocol === 'tcp' ? new TcpSimulator(this.callbacks) : new HttpSimulator(this.callbacks)
         await this.service.start(customer); return
       }
@@ -97,6 +106,7 @@ export class SimulatorController {
           if (config.selectedCustomerId === customer.id) config.selectedCustomerId = config.customers[0]?.id ?? null
         }
       } else {
+        // 运行中允许改当前客户接口；切到其他客户会破坏监听身份，因此必须先停止。
         if (busy && runtime.customerId !== customer.id) throw new Error('STOP_FIRST')
         if (command.type === 'reorderEndpoints') {
           // 只接受当前客户接口 ID 的完整排列，拒绝重复、缺失或跨客户 ID。

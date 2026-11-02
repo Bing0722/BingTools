@@ -1,3 +1,6 @@
+/**
+ * 串口 IPC：仅允许枚举设备和执行预定义业务命令，不暴露原始串口对象。
+ */
 import { ipcMain, type BrowserWindow } from 'electron'
 import { motionCommandSchema } from '../../shared/schemas/motion'
 import type { MotionController } from '../services/motion-controller'

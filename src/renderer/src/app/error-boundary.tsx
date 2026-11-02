@@ -1,3 +1,6 @@
+/**
+ * 捕获子组件渲染异常并提供重新加载入口；异步业务错误由各 store 独立处理。
+ */
 import { Component, type ReactNode } from 'react'
 import i18n from '@/i18n'
 export class ErrorBoundary extends Component<{ children: ReactNode }, { failed: boolean }> {

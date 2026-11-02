@@ -1,3 +1,6 @@
+/**
+ * 运控页面编排：客户参数、规则草稿、未保存保护和卡片排序；串口收发只走受控 API。
+ */
 import { NumberInput } from '@/components/ui/number-input'
 import { TransferDialog } from '../transfer/transfer-dialog'
 import { useLayoutEffect, useRef, useState } from 'react'
@@ -14,6 +17,7 @@ import { MotionLogs } from './motion-logs'
 type CustomerDraft = Omit<MotionCustomer, 'rules'>
 export function MotionPage() {
   const { t } = useTranslation()
+  // 这里只订阅配置与命令状态；高频 logs 由 MotionLogs 自己订阅，避免每批数据重绘表单。
   const connectionError = useMotion((s) => s.error)
   const state = useMotion((s) => s.state), ready = useMotion((s) => s.ready), busy = useMotion((s) => s.busy), run = useMotion((s) => s.run)
   const customer = state.config.customers.find((v) => v.id === state.config.selectedCustomerId)
@@ -24,9 +28,11 @@ export function MotionPage() {
   const [drag, setDrag] = useState<string | null>(null), [target, setTarget] = useState<string | null>(null)
   const grid = useRef<HTMLDivElement>(null), positions = useRef(new Map<string, DOMRect>())
   const reduced = useMedia('(prefers-reduced-motion: reduce)')
+  // 打开编辑时记录序列化原稿；复制来源的选择也算变更，离开页面前须保存或放弃。
   const dirty = !!(rule || customerDraft) && (JSON.stringify(rule ?? customerDraft) !== original || (!!customerDraft && !!source))
   const blocker = useBlocker(dirty)
   const order = customer?.rules.map((v) => v.id).join(',') ?? ''
+  // 按规则顺序变化做 FLIP：保留旧坐标，布局更新后从旧位置平移到新位置。
   useLayoutEffect(() => {
     const next = new Map<string, DOMRect>(), animations: Animation[] = []
     grid.current?.querySelectorAll<HTMLElement>('[data-rule-id]').forEach((element) => {
@@ -38,6 +44,7 @@ export function MotionPage() {
     return () => animations.forEach((animation) => animation.cancel())
   }, [order, reduced])
   function error(code: string) { useNotifications.getState().push(code, 'error') }
+  // 只请求主进程枚举的设备；保存了但当前不存在的端口可展示，连接时仍会被主进程拒绝。
   async function refreshPorts() {
     setLoadingPorts(true)
     try { const result = await window.app.motion.listPorts(); if (result.ok) setPorts(result.data); else error(result.error.code) } catch { error('MOTION_LIST_FAILED') } finally { setLoadingPorts(false) }
@@ -51,6 +58,7 @@ export function MotionPage() {
     setRule(value); setOriginal(JSON.stringify(value))
   }
   function close() { if (busy) return; if (dirty) setConfirmClose(true); else { setRule(null); setCustomerDraft(null) } }
+  // 表单先用共享 schema 给出输入反馈，成功执行业务命令后才关闭并丢弃草稿。
   async function save() {
     if (rule && customer) {
       const parsed = motionRuleSchema.safeParse(rule)
@@ -63,6 +71,7 @@ export function MotionPage() {
     }
     setRule(null); setCustomerDraft(null); return true
   }
+  // 拖动和键盘移动最终都提交完整规则 ID 顺序，主进程再次校验集合完整性。
   async function move(id: string, to: string) {
     if (!customer || busy || id === to) return
     const ids = customer.rules.map((v) => v.id), from = ids.indexOf(id), destination = ids.indexOf(to)

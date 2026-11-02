@@ -1,3 +1,6 @@
+/**
+ * 串口运行时规则与契约：客户保存连接参数，规则保存接收匹配和回复内容。
+ */
 import { z } from 'zod'
 
 export const SERIAL_FRAME_LIMIT = 65536
@@ -12,6 +15,7 @@ export const serialSettingsSchema = z.object({
   frameLength: z.number().int().min(1).max(SERIAL_FRAME_LIMIT), idleMs: z.number().int().min(10).max(5000),
 }).strict()
 export const defaultSerial = { path: '', baudRate: 9600, dataBits: 8, stopBits: 1, parity: 'none', rtscts: false, framing: 'delimiter', delimiter: '0A', frameLength: 8, idleMs: 50 } as const
+// 文本按 UTF-8 编码计数；HEX 先去空白，必须每两位组成完整字节。
 export function validSerialPayload(value: string, format: 'text' | 'hex'): boolean {
   if (format === 'text') return new TextEncoder().encode(value).length <= SERIAL_FRAME_LIMIT
   const hex = value.replace(/\s/g, '')
@@ -28,6 +32,7 @@ export const motionCustomerInputSchema = z.object({ id: z.string().uuid(), name:
 export const motionCustomerSchema = motionCustomerInputSchema.extend({ rules: z.array(motionRuleSchema).max(500) }).strict()
 export const motionConfigSchema = z.object({ schemaVersion: z.literal(2), selectedCustomerId: z.string().uuid().nullable(), customers: z.array(motionCustomerSchema).max(100) }).strict()
 export const defaultMotionConfig: MotionConfig = { schemaVersion: 2, selectedCustomerId: null, customers: [] }
+// type 是命令判别字段；每种操作只接受它需要的业务字段，未知字段一律拒绝。
 export const motionCommandSchema = z.discriminatedUnion('type', [
   z.object({ type: z.literal('saveCustomer'), customer: motionCustomerInputSchema, sourceId: z.string().uuid().optional() }).strict(),
   z.object({ type: z.literal('selectCustomer'), customerId: z.string().uuid() }).strict(),
@@ -48,8 +53,10 @@ export type MotionConfig = z.infer<typeof motionConfigSchema>
 export type MotionCommand = z.infer<typeof motionCommandSchema>
 export interface SerialPortInfo { path: string; manufacturer?: string }
 export interface MotionLog { id: number; time: number; customerId: string | null; direction: 'rx' | 'tx' | 'event'; code: string; level: 'info' | 'error'; text: string; hex: string; bytes: number; truncated: boolean; ruleName?: string }
+// 配置 revision 与日志 ID 各自递增；状态事件不携带整份日志，减少高频复制。
 export interface MotionState { revision: number; config: MotionConfig; phase: 'stopped' | 'starting' | 'running' | 'stopping' | 'failed'; customerId: string | null; error?: string; warning?: string }
 export interface MotionSnapshot extends MotionState { logs: MotionLog[] }
+// throughId 标记清空时的日志边界；它之后产生的新记录仍然保留。
 export type MotionEvent = { type: 'state'; state: MotionState } | { type: 'logs'; entries: MotionLog[] } | { type: 'clear'; customerId: string | null; throughId: number }
 
 /** 旧规则不做接收预处理，显式迁移后保持原有匹配行为。 */

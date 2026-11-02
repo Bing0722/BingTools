@@ -1,3 +1,7 @@
+/**
+ * 预加载桥接层：将固定 IPC 包装成 window.app，隔离页面与 Electron 特权能力。
+ * 此处只转发参数和结果；业务校验、文件读写及网络监听都由主进程负责。
+ */
 import type { MotionEvent } from '../shared/schemas/motion'
 import { contextBridge, ipcRenderer } from 'electron'
 import type { UpdateSnapshot } from '../shared/contracts/updater'
@@ -8,6 +12,7 @@ import type { SimulatorCommand } from '../shared/schemas/simulator'
 const command = (value: SimulatorCommand) => ipcRenderer.invoke('simulator:command', value)
 const api: AppApi = {
   platform: process.platform as AppApi['platform'],
+  // 页面只传模块和实体 ID；打开/保存对话框及文件路径由主进程管理。
   transfer: {
     choose: (module) => ipcRenderer.invoke('transfer:choose', module),
     apply: (input) => ipcRenderer.invoke('transfer:apply', input),
@@ -32,6 +37,7 @@ const api: AppApi = {
     listPorts: () => ipcRenderer.invoke('motion:ports'),
     command: (value) => ipcRenderer.invoke('motion:command', value),
     onEvent: (listener) => {
+      // 丢弃原始 Electron event，只把业务载荷交给页面；返回函数供组件卸载时取消订阅。
       const handler = (_event: Electron.IpcRendererEvent, payload: MotionEvent) => listener(payload)
       ipcRenderer.on('motion:event', handler)
       return () => ipcRenderer.removeListener('motion:event', handler)
@@ -55,4 +61,5 @@ const api: AppApi = {
     },
   },
 }
+// contextBridge 在隔离上下文中暴露这份固定 API，不共享 Node 或原始 IPC 对象。
 contextBridge.exposeInMainWorld('app', api)

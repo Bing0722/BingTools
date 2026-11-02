@@ -1,3 +1,6 @@
+/**
+ * 统一工作台布局：标题栏、侧栏和路由内容区；窄窗导航用临时弹窗展示。
+ */
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { AppSidebar } from './app-sidebar'
@@ -8,6 +11,7 @@ import { Button } from '@/components/ui/button'
 import { useTranslation } from 'react-i18next'
 import { Dialog } from '@/components/ui/dialog'
 
+// 按路由保留主内容滚动位置，仅当前会话有效；业务日志面板另存自己的滚动位置。
 const scrollPositions = new Map<string, number>()
 export function AppShell() {
   const { t } = useTranslation()
@@ -20,11 +24,13 @@ export function AppShell() {
   const collapsed = narrow || preferences.sidebarCollapsed
   const title = t(pathname === '/settings' ? 'settings' : pathname === '/motion' ? 'motion' : 'simulator')
   function toggle() {
+    // 窄窗只切换临时导航弹窗，不把响应式收起状态写入用户的桌面侧栏偏好。
     if (narrow) setOverlay((open) => !open)
     else void update({ sidebarCollapsed: !preferences.sidebarCollapsed })
   }
   useEffect(() => {
     function keydown(event: KeyboardEvent) {
+      // 输入法组合、长按重复不触发快捷键；下方侧栏快捷键另跳过文本编辑区域。
       if (event.isComposing || event.repeat || (!event.metaKey && !event.ctrlKey)) return
       if (event.key.toLowerCase() === 'b') {
         if (event.target instanceof HTMLElement && (event.target.isContentEditable || /INPUT|TEXTAREA/.test(event.target.tagName))) return

@@ -1,8 +1,12 @@
+/**
+ * 配置迁移纯数据逻辑：生成导出文件结构、合并独立副本，并在保存前检查整批冲突。
+ */
 import { randomUUID } from 'node:crypto'
 import { transferSchema, type TransferData, type TransferExport, type TransferPreview } from '../../shared/schemas/transfer'
 import { customerNameKey, simulatorConfigSchema, type SimulatorConfig } from '../../shared/schemas/simulator'
 import { motionConfigSchema, type MotionConfig, type MotionRule } from '../../shared/schemas/motion'
 
+// 生成唯一名称时先给编号预留字符，避免追加后超出客户名长度限制。
 function newName(name: string, names: Set<string>): string {
   let result = name
   for (let index = 2; names.has(customerNameKey(result)); index++) {
@@ -11,6 +15,7 @@ function newName(name: string, names: Set<string>): string {
   }
   names.add(customerNameKey(result)); return result
 }
+// 文本和 HEX 先统一转字节再判重；显示写法不同也可能对应完全相同的接收内容。
 function validateMotionRules(rules: MotionRule[]) {
   const keys = rules.map((r) => Buffer.from(r.format === 'hex' ? r.receive.replace(/\s/g, '') : r.receive, r.format === 'hex' ? 'hex' : 'utf8').toString('hex'))
   if (new Set(keys).size !== keys.length) throw new Error('TRANSFER_CONFLICT')
@@ -55,6 +60,7 @@ export function mergeMotionTransfer(current: MotionConfig, input: TransferData, 
   if (!motionConfigSchema.safeParse(config).success) throw new Error('TRANSFER_LIMIT')
   return config
 }
+// 从已保存配置挑选导出范围，不读取页面草稿，也不携带日志或连接状态。
 export function createTransfer(request: TransferExport, simulator: SimulatorConfig, motion: MotionConfig): TransferData {
   const base = { format: 'BingTools-transfer' as const, version: 1 as const }
   if (request.module === 'simulator') {
@@ -73,6 +79,7 @@ export function createTransfer(request: TransferExport, simulator: SimulatorConf
   if (!rules.length) throw new Error('TRANSFER_EMPTY')
   return { ...base, module: 'motion', scope: 'interfaces', rules }
 }
+// 页面只需数量与前十项名称；完整配置保存在主进程，通过随机 token 确认使用。
 export function transferPreview(data: TransferData, token: string): TransferPreview {
   const entries = data.scope === 'customers' ? data.customers : data.module === 'simulator' ? data.endpoints : data.rules
   return { token, module: data.module, scope: data.scope, customers: data.scope === 'customers' ? entries.length : 0,

@@ -1,3 +1,6 @@
+/**
+ * 配置迁移弹窗：选择文件、预览摘要、确认导入分步执行；文件路径和正文留在主进程。
+ */
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowDownUp, Download, Upload } from 'lucide-react'
@@ -15,6 +18,7 @@ export function TransferDialog({ module, customer, hasCustomers, disabled, locke
   const [scope, setScope] = useState('current'), [interfaceId, setInterfaceId] = useState('')
   const [preview, setPreview] = useState<TransferPreview | null>(null), [status, setStatus] = useState('')
   function report(code: string) { useNotifications.getState().push(code, 'error') }
+  // 选择和校验文件只产生摘要，不立刻导入；用户取消时 preview 保持为空。
   async function choose() {
     setBusy(true); setStatus(''); setPreview(null)
     try {
@@ -27,6 +31,7 @@ export function TransferDialog({ module, customer, hasCustomers, disabled, locke
     if (!preview) return
     setBusy(true); setStatus('')
     try {
+      // 通过 token 使用主进程已校验的预览，接口导入另附目标客户 ID。
       const result = await window.app.transfer.apply({ token: preview.token, customerId: preview.scope === 'interfaces' ? customer?.id : undefined })
       if (!result.ok) report(result.error.code)
       else { setPreview(null); setStatus('transferImported') }
@@ -40,6 +45,7 @@ export function TransferDialog({ module, customer, hasCustomers, disabled, locke
       else if (result.data) setStatus('transferExported')
     } catch { report('CONNECTION_FAILED') } finally { setBusy(false) }
   }
+  // 任务进行中阻止关闭；正常关闭时释放主进程预览，不让正文跨弹窗生命周期滞留。
   function changeOpen(value: boolean) {
     if (busy) return
     setOpen(value); setPreview(null); setStatus(''); setScope(customer ? 'current' : 'all'); setInterfaceId('')

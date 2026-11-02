@@ -1,3 +1,6 @@
+/**
+ * 设置运行时规则：统一默认值、允许页面修改的偏好字段及历史文件迁移。
+ */
 import { z } from 'zod'
 
 export const themeColors = ['graphite', 'blue', 'violet', 'green', 'amber', 'rose'] as const
@@ -17,6 +20,7 @@ export const preferencesSchema = z.object({
   sidebarCollapsed: z.boolean(),
   sidebarWidth: z.number().int().min(200).max(320),
 }).strict()
+// partial 允许只提交本次变更字段，strict 拒绝混入未知或主进程专属字段。
 export const settingsPatchSchema = preferencesSchema.partial().strict()
 export const windowBoundsSchema = z.object({
   x: z.number().int(), y: z.number().int(),
@@ -34,6 +38,7 @@ export type SettingsPatch = z.infer<typeof settingsPatchSchema>
 export const defaultSettings: AppSettings = {
   schemaVersion: 5, ...appearanceDefaults, notificationPosition: 'bottom-right', theme: 'system', language: 'system', sidebarCollapsed: false, sidebarWidth: 240,
 }
+// 明确挑选对页面开放的偏好，不把窗口坐标或存储版本当成可编辑设置返回。
 export function preferencesOf(settings: AppSettings): Preferences {
   return preferencesSchema.parse({
     glassEnabled: settings.glassEnabled, glassIntensity: settings.glassIntensity,
@@ -47,6 +52,7 @@ export function preferencesOf(settings: AppSettings): Preferences {
 
 /** 逐版补齐偏好，保留原有主题、语言、布局和窗口坐标。 */
 export function parseSettings(value: unknown): AppSettings {
+  // 按旧版本当时允许的字段校验，再补新增默认值；不能直接把未知数据当作当前版本。
   const legacy = settingsSchema.omit({ glassEnabled: true, glassIntensity: true, themeColor: true, uiFont: true, localFont: true })
   if (typeof value === 'object' && value && 'schemaVersion' in value) {
     if (value.schemaVersion === 4) {

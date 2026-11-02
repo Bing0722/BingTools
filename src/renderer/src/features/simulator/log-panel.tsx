@@ -1,3 +1,6 @@
+/**
+ * 服务器日志面板：按客户筛选概要，详情展示主进程已脱敏和截断的数据。
+ */
 import { useLogViews } from '@/stores/log-view-store'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Pause, Play, Search, Trash2 } from 'lucide-react'
@@ -14,6 +17,7 @@ export function LogPanel({ customerId }: { customerId: string | null }) {
   const [detail, setDetail] = useState<LogEntry | null>(null)
   const list = useRef<HTMLDivElement>(null)
   const selectedButton = useRef<HTMLElement | null>(null)
+  // 页面返回时恢复上次浏览位置；自动跟随的 effect 会在未暂停时滚到最新。
   useLayoutEffect(() => {
     const element = list.current
     if (!element) return
@@ -23,6 +27,7 @@ export function LogPanel({ customerId }: { customerId: string | null }) {
   const formatter = useMemo(() => new Intl.DateTimeFormat(i18n.language, { hour: '2-digit', minute: '2-digit', second: '2-digit', fractionalSecondDigits: 3, hour12: false }), [i18n.language])
   const logs = snapshot.logs.filter((entry) => (!customerId || entry.customerId === customerId) &&
     (level === 'all' || level === entry.level) && `${entry.method ?? ''} ${entry.path ?? ''} ${entry.status ?? ''} ${t(entry.code)} ${entry.customerName}`.toLowerCase().includes(query.toLowerCase()))
+  // 暂停仅停止自动滚动，日志仍继续接收；收起时也保留列表和筛选状态。
   useEffect(() => {
     if (!paused && !collapsed && list.current) list.current.scrollTop = list.current.scrollHeight
   }, [snapshot.logs, paused, collapsed])

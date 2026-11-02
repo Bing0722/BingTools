@@ -1,3 +1,6 @@
+/**
+ * 页面路由入口：所有主页面共用 AppShell，hash 路由可在本地 file 页面中工作。
+ */
 import { MotionPage } from '@/features/motion/motion-page'
 import { createHashRouter, Navigate, RouterProvider } from 'react-router-dom'
 import { AppShell } from '@/shell/app-shell'

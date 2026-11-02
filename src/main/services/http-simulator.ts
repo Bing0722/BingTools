@@ -1,3 +1,6 @@
+/**
+ * HTTP 服务实现：请求开始时确定响应规则，限制正文大小，结束时记录脱敏预览。
+ */
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import { performance } from 'node:perf_hooks'
 import { BODY_LIMIT, type Customer } from '../../shared/schemas/simulator'
@@ -29,6 +32,7 @@ export class HttpSimulator {
     this.setState({ ...identity, phase: 'starting' })
     const server = createServer({ maxHeaderSize: 16 * 1024 }, (request, response) => this.handle(request, response))
     this.server = server
+    // 分别限制请求、头部和连接空闲时间，避免异常客户端长时间占用资源。
     server.requestTimeout = 15000
     server.headersTimeout = 10000
     server.timeout = 15000
@@ -44,6 +48,7 @@ export class HttpSimulator {
       await new Promise<void>((resolve, reject) => {
         const fail = (error: Error) => { server.off('listening', ready); reject(error) }
         const ready = () => { server.off('error', fail); resolve() }
+        // 监听真正就绪才进入 running；启动失败监听器与运行期异常监听器分开处理。
         server.once('error', fail); server.once('listening', ready)
         server.listen(customer.port, customer.host)
       })
@@ -89,14 +94,17 @@ export class HttpSimulator {
     let path: string
     try { path = new URL(request.url ?? '/', 'http://localhost').pathname }
     catch { response.writeHead(400).end(); return }
+    // 匹配只使用方法和 URL pathname，查询参数不参与；关闭的接口等同于不存在。
     const endpoint = customer.endpoints.find((entry) => entry.enabled && entry.method === method && entry.path === path)
     let size = 0
     let finished = false
     let previewBytes = 0
     const chunks: Buffer[] = []
+    // finished 防止超限、请求结束等多个事件重复写响应；日志在响应 finish 时生成。
     const reply = (status: number, body: string, format: string, code: string) => {
       if (finished || response.destroyed) return
       finished = true
+      // HEAD 与 204/304 按 HTTP 语义不发送正文，即使接口保存了响应内容。
       const outgoing = method === 'HEAD' || status === 204 || status === 304 ? '' : body
       const inbound = preview(Buffer.concat(chunks))
       const outbound = preview(outgoing)
@@ -112,6 +120,7 @@ export class HttpSimulator {
       })
       response.end(outgoing)
     }
+    // 对端提前断开时也清除延时计时器，避免等待表残留无效连接。
     response.once('close', () => {
       const timer = this.pendingResponses.get(response)
       if (timer) clearTimeout(timer)
@@ -144,6 +153,7 @@ export class HttpSimulator {
     request.on('error', () => {
       if (!finished) this.callbacks.log({ customerId: customer.id, customerName: customer.name, code: 'REQUEST_ABORTED', level: 'warn', method, path })
     })
+    // 已声明超限时直接拒绝；data 中仍按实际收到的字节累计，不能只信任请求头。
     if (Number(request.headers['content-length']) > BODY_LIMIT) reply(413, 'Payload too large', 'text', 'PAYLOAD_TOO_LARGE')
   }
 }

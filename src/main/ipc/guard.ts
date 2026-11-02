@@ -1,3 +1,6 @@
+/**
+ * IPC 共用安全入口：调用者必须是当前可信窗口的主 frame。
+ */
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { isTrustedUrl } from './trusted-source'
 /** 每个业务通道都检查窗口、主 frame 与文档来源，不信任渲染进程传来的身份。 */

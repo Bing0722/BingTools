@@ -1,3 +1,6 @@
+/**
+ * 接口卡片列表：负责拖动、键盘排序和临时顺序预览，持久化由父组件提交。
+ */
 import { useLayoutEffect, useRef, useState } from 'react'
 import { FileJson, GripVertical, Pencil, Plus } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -13,6 +16,7 @@ export function EndpointCards({ protocol = 'http', endpoints, busy, pendingToggl
 }) {
   const { t } = useTranslation()
   const reduced = useMedia('(prefers-reduced-motion: reduce)')
+  // 排序期间只保存 ID 顺序预览，卡片正文仍取自权威接口数据。
   const [preview, setPreview] = useState<string[] | null>(null)
   const [dragged, setDragged] = useState<string | null>(null)
   const [over, setOver] = useState<string | null>(null)
@@ -29,6 +33,7 @@ export function EndpointCards({ protocol = 'http', endpoints, busy, pendingToggl
     grid.current?.querySelectorAll<HTMLElement>('[data-endpoint-id]').forEach((element) => {
       const id = element.dataset.endpointId!
       const rect = element.getBoundingClientRect()
+      // FLIP：比较上次与本次布局坐标，先反向平移，再动画回到真实布局位置。
       const previous = positions.current.get(id)
       next.set(id, rect)
       if (!reduced && previous && (previous.x !== rect.x || previous.y !== rect.y)) {
@@ -47,6 +52,7 @@ export function EndpointCards({ protocol = 'http', endpoints, busy, pendingToggl
     const ids = endpoints.map((entry) => entry.id)
     const from = ids.indexOf(id), to = ids.indexOf(targetId)
     if (from < 0 || to < 0) return
+    // 拖动和方向键共用此函数，只提交完整 ID 排列，不把 DOM 坐标写入配置。
     ids.splice(from, 1); ids.splice(to, 0, id)
     // 排序前重新测量，兼容窗口缩放、滚动以及侧栏宽度改变。
     grid.current?.querySelectorAll<HTMLElement>('[data-endpoint-id]').forEach((element) => positions.current.set(element.dataset.endpointId!, element.getBoundingClientRect()))

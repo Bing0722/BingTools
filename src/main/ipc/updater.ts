@@ -1,3 +1,6 @@
+/**
+ * 更新 IPC：固定检查、下载、安装及发布页入口；页面不能指定任意外部地址。
+ */
 import { ipcMain, shell, type BrowserWindow } from 'electron'
 import { createGuard } from './guard'
 import type { UpdateController } from '../services/update-controller'
@@ -7,6 +10,7 @@ export function registerUpdater(controller: UpdateController, getWindow: () => B
   const allowed = createGuard(getWindow, expectedUrl)
   ipcMain.handle('updater:openRelease', async (event) => {
     if (!allowed(event)) return { ok: false, error: { code: 'FORBIDDEN', message: 'FORBIDDEN' } }
+    // 仓库只能来自构建配置，并再次验证 owner/repo 形式，避免变成任意 URL 打开入口。
     const repository = controller.snapshot().repository
     if (!repository || !/^[A-Za-z0-9][A-Za-z0-9-]*\/[A-Za-z0-9_.-]+$/.test(repository)) return { ok: false, error: { code: 'UPDATE_CHECK_FAILED', message: 'UPDATE_CHECK_FAILED' } }
     try { await shell.openExternal(`https://github.com/${repository}/releases/latest`); return { ok: true, data: controller.snapshot() } }

@@ -1,3 +1,6 @@
+/**
+ * 独立于本地存储的迁移文件格式：按模块和范围限定内容，不包含日志或运行状态。
+ */
 import { z } from 'zod'
 import { customerSchema, endpointSchema } from './simulator'
 import { motionCustomerSchema, motionRuleSchema } from './motion'
@@ -5,6 +8,7 @@ import { motionCustomerSchema, motionRuleSchema } from './motion'
 export const TRANSFER_LIMIT = 32 * 1024 * 1024
 export const transferModuleSchema = z.enum(['simulator', 'motion'])
 const header = { format: z.literal('BingTools-transfer'), version: z.literal(1) }
+// 四种结构分别表示服务器/串口的客户集或接口集，禁止跨模块混入字段。
 export const transferSchema = z.union([
   z.object({ ...header, module: z.literal('simulator'), scope: z.literal('customers'), customers: z.array(customerSchema).min(1).max(100) }).strict(),
   z.object({ ...header, module: z.literal('simulator'), scope: z.literal('interfaces'), protocol: z.enum(['http', 'tcp']), endpoints: z.array(endpointSchema).min(1).max(500) }).strict(),
@@ -15,6 +19,7 @@ export const transferExportSchema = z.object({
   module: transferModuleSchema, scope: z.enum(['customers', 'interfaces']),
   customerId: z.string().uuid().optional(), interfaceId: z.string().uuid().optional(),
 }).strict().refine((v) => v.scope === 'interfaces' ? !!v.customerId : !v.interfaceId)
+// 确认导入只提交预览 token 和可选目标客户，不接受页面指定文件路径。
 export const transferApplySchema = z.object({ token: z.string().uuid(), customerId: z.string().uuid().optional() }).strict()
 export type TransferModule = z.infer<typeof transferModuleSchema>
 export type TransferData = z.infer<typeof transferSchema>

@@ -1,8 +1,12 @@
+/**
+ * 真实更新后端：封装 electron-updater，检查、下载和安装均由控制器明确调用。
+ */
 import { autoUpdater } from 'electron-updater'
 import type { UpdateBackend } from './update-controller'
 /** 仓库由构建配置决定，页面不能指定下载 URL 或注入访问令牌。 */
 export function githubBackend(repository: string, installFailed: () => void): UpdateBackend {
   const [owner, repo] = repository.split('/')
+  // 关闭库的自动下载与退出安装，保留检查、下载、安装三个用户可控步骤。
   autoUpdater.autoDownload = false
   autoUpdater.autoInstallOnAppQuit = false
   autoUpdater.allowPrerelease = false
@@ -23,6 +27,7 @@ export function githubBackend(repository: string, installFailed: () => void): Up
       const listener = (value: { percent: number }) => progress(value.percent)
       autoUpdater.on('download-progress', listener)
       try { await autoUpdater.downloadUpdate() }
+      // 下载结束或失败都移除进度监听，避免重试时重复推送进度。
       finally { autoUpdater.off('download-progress', listener) }
     },
     install() { autoUpdater.quitAndInstall(false, true) },

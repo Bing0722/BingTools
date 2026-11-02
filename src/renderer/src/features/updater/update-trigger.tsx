@@ -1,3 +1,6 @@
+/**
+ * 标题栏更新入口：红点由共享版本状态派生，弹窗与设置页复用同一更新面板。
+ */
 import { useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

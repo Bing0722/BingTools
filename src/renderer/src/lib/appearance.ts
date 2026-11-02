@@ -1,3 +1,6 @@
+/**
+ * 外观辅助函数与统一色板：字体检测使用浏览器能力，字体选择始终保留系统回退。
+ */
 import type { Preferences } from '../../../shared/schemas/settings'
 export const systemFontStack = 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif'
 export function uiFontStack(preferences: Pick<Preferences, 'uiFont' | 'localFont'>): string {

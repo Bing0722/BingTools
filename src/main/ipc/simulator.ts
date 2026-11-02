@@ -1,3 +1,6 @@
+/**
+ * 服务器仿真 IPC：将有限业务命令交给控制器，向当前窗口转发状态和日志。
+ */
 import { ipcMain, type BrowserWindow } from 'electron'
 import { simulatorCommandSchema } from '../../shared/schemas/simulator'
 import type { SimulatorController } from '../services/simulator-controller'

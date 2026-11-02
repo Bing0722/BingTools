@@ -344,3 +344,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [v0.8.5 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/41448028259)通过；Windows 2022 x64 与 macOS 14 ARM64 完成类型检查、Lint、测试、版本说明校验、原生打包及发布。
 - [v0.8.5 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.8.5)为最新稳定版本，含 Windows EXE、macOS DMG/ZIP、blockmap 与两份更新清单，共 8 个资产。公开清单均标记 0.8.5，含匹配资产名及 SHA-512。
 - Windows/Linux 实机安装、真实升级和用户设备协议仍未验收；macOS 包未签名、公证，需手动下载安装。
+
+## 中文注释与代码阅读说明（2026-11-02）
+
+- 为全部 70 个 TypeScript／TSX 源文件补充模块职责说明，并在主进程生命周期、IPC 边界、原子保存、HTTP／TCP／串口分帧匹配、更新和迁移流程、页面草稿、快照同步、日志去重及虚拟列表等关键位置添加中文解释；补充 CSS 语义变量、滚动与平台留白说明。
+- 新增 `docs/code-guide.md`，提供推荐阅读顺序、保存接口调用链及术语说明，README 增加入口。架构文档开头原先仅写 HTTP 与串口，现按已有实现补齐 TCP；没有新增协议能力。
+- 使用 TypeScript 解析及去注释打印，对比确认 70 个 TS／TSX 文件去注释后的语法一致；CSS 去除注释后的规则一致。未改变运行逻辑、样式规则、依赖或持久化契约。
+- `pnpm lint`、`pnpm build`（含 `pnpm typecheck`）、`pnpm test` 通过；10 个测试文件、77 项测试。首次测试因沙箱禁止回环端口监听出现 `EPERM`，允许本机监听后完整重跑通过。构建仍有已有的 Zod 注释处理及块体积提示。
+- 本轮仅注释与文档维护，应用行为不变，版本保留 0.8.5。未新增镜像式测试；未执行桌面、硬件或安装包验收，未推送或发布。

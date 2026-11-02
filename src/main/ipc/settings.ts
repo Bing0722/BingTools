@@ -1,3 +1,6 @@
+/**
+ * 设置 IPC：先校验来源和可修改字段，再落盘并同步原生主题、菜单。
+ */
 import { app, ipcMain, nativeTheme, type BrowserWindow } from 'electron'
 import { preferencesOf, settingsPatchSchema, type AppSettings } from '../../shared/schemas/settings'
 import type { Result, SettingsSnapshot } from '../../shared/contracts/app-api'
@@ -12,9 +15,11 @@ export function registerSettings(repository: SettingsRepository, getWindow: () =
   ipcMain.handle('settings:get', (event): Result<SettingsSnapshot> => allowed(event) ? snapshot() : fail('FORBIDDEN'))
   ipcMain.handle('settings:update', async (event, patch: unknown): Promise<Result<SettingsSnapshot>> => {
     if (!allowed(event)) return fail('FORBIDDEN')
+    // 只接受偏好 patch，不允许页面写 schemaVersion 或窗口坐标等主进程字段。
     const parsed = settingsPatchSchema.safeParse(patch)
     if (!parsed.success) return fail('INVALID_INPUT')
     try {
+      // 先落盘再更新 nativeTheme 和菜单，保存失败不会留下仅内存生效的偏好。
       const settings = await repository.update(parsed.data)
       if (parsed.data.theme) nativeTheme.themeSource = parsed.data.theme
       onChange(settings)

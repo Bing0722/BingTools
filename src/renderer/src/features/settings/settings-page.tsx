@@ -1,3 +1,6 @@
+/**
+ * 设置页面：使用共享偏好展示已保存状态，外观、布局、通知和更新复用各自组件。
+ */
 import { AppearancePreferences } from './appearance-preferences'
 import { appearanceDefaults } from '../../../../shared/schemas/settings'
 import { UpdateSection } from '@/features/updater/update-section'

@@ -1,3 +1,6 @@
+/**
+ * 数字输入基础组件：数值由父组件控制，步进委托浏览器以保留边界及精度语义。
+ */
 import { useRef, type InputHTMLAttributes } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useTranslation } from 'react-i18next'

@@ -1,3 +1,6 @@
+/**
+ * 根据已保存的语言偏好重建应用菜单；Electron role 负责原生行为与快捷键。
+ */
 import { app, Menu, type MenuItemConstructorOptions } from 'electron'
 import type { AppSettings } from '../shared/schemas/settings'
 /** 自定义菜单即时切换语言，系统角色保留原生快捷键与行为。 */

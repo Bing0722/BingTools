@@ -1,3 +1,7 @@
+/**
+ * 服务器页面编排：正式配置来自 store，监听字段和接口草稿留在当前页面。
+ * guard 串联自动保存和未保存确认，业务操作最终通过 window.app 进入主进程。
+ */
 import { NumberInput } from '@/components/ui/number-input'
 import { TransferDialog } from '../transfer/transfer-dialog'
 import { TcpSettings } from './tcp-settings'
@@ -22,6 +26,7 @@ export function SimulatorPage() {
   // 开关仍串行保存，但不让整页进入禁用/变灰状态。
   const busy = working && !pendingToggle && !pendingListener
   const customer = snapshot.config.customers.find((entry) => entry.id === snapshot.config.selectedCustomerId)
+  // 正式快照保持只读；表单通过展开对象更新局部草稿，保存成功后再接受主进程结果。
   const [draft, setDraft] = useState<Endpoint | null>(null)
   const [listener, setListener] = useState({ host: '', port: '' })
   const [pending, setPending] = useState<Action | null>(null)
@@ -33,12 +38,14 @@ export function SimulatorPage() {
   const focusReturn = useRef<HTMLElement | null>(null)
   const locked = ['starting','running','stopping'].includes(snapshot.runtime.phase)
   const persisted = customer?.endpoints.find((entry) => entry.id === draft?.id)
+  // 接口开关保存期间只忽略该 enabled 差异，避免先到的快照让弹窗短暂显示“未保存”。
   const endpointDirty = !!draft && !equal(pendingToggle === draft.id && persisted ? { ...draft, enabled: persisted.enabled } : draft, persisted)
   const listenerDirty = !!customer && (listener.host !== customer.host || listener.port !== String(customer.port))
   const dirty = endpointDirty || listenerDirty
   const blocker = useBlocker(dirty)
   const customerId = customer?.id
 
+  // 客户 ID 改变时在绘制前重置编辑目标，避免新客户页面闪出上一客户的监听字段。
   useLayoutEffect(() => {
     const current = useSimulator.getState().snapshot.config.customers.find((entry) => entry.id === customerId)
     setDraft(null)
@@ -46,12 +53,14 @@ export function SimulatorPage() {
   }, [customerId])
 
   async function saveListener(): Promise<boolean> {
+    // 失焦、Enter 和启动可能连续触发保存，复用同一个 Promise 防止重复提交。
     if (listenerSave.current) return listenerSave.current
     if (!customer || !listenerDirty) return true
     if (locked || useSimulator.getState().busy) return false
     // CustomerInput 为严格 schema，只传入允许保存的业务字段。
     const input = customerInputSchema.safeParse({ id: customer.id, name: customer.name, host: listener.host, port: Number(listener.port), protocol: customer.protocol, tcp: customer.tcp })
     if (!input.success) { setListenerFailed(true); reportError('INVALID_INPUT'); return false }
+    // 记录本次提交值；返回时只有草稿仍相同才替换，避免覆盖等待期间的新输入。
     const submitted = listener
     const operation = run(() => window.app.simulator.saveCustomer(input.data), undefined, undefined, true).then((saved) => {
       setListenerFailed(!saved)
@@ -61,6 +70,7 @@ export function SimulatorPage() {
     listenerSave.current = operation
     return operation
   }
+  // 客户切换、启动和打开其他编辑器都走同一入口：先保存监听，再保护接口草稿。
   async function guard(action: Action) {
     if (useSimulator.getState().busy && !listenerSave.current) return
     if (!await saveListener()) return
@@ -98,12 +108,14 @@ export function SimulatorPage() {
     }
     return true
   }
+  // 只有保存成功或明确放弃后才执行原动作；校验失败则保留弹窗与输入。
   async function continueNavigation(save: boolean) {
     if (save && !await saveChanges()) return
     if (!save) {
       setDraft(persisted ?? null)
       if (customer) setListener({ host: customer.host, port: String(customer.port) })
     }
+    // pending 保存真正要执行的动作，取消确认时只清空它，不改变当前页面。
     const action = pending
     setPending(null)
     if (blocker.state === 'blocked') blocker.proceed()
@@ -121,6 +133,7 @@ export function SimulatorPage() {
       setPending(() => () => setDraft(null))
     } else setDraft(null)
   }
+  // 新接口默认关闭，编辑内容经显式保存后才进入正式客户配置。
   function newEndpoint() {
     guard(() => setDraft({ id: crypto.randomUUID(), name: t('newEndpoint'), path: '/api/example', method: 'GET', format: 'json', status: 200, body: '{\n  "ok": true\n}', enabled: false }))
   }
@@ -152,6 +165,7 @@ export function SimulatorPage() {
     }
   }
   if (!ready) return <div className="startup" role="status">{t('loading')}</div>
+  // IPv6 地址显示时需要方括号；TCP 不显示 HTTP 路径字段。
   const fullAddress = customer && draft ? `${customer.protocol}://${(listener.host || customer.host).includes(':') ? `[${listener.host || customer.host}]` : listener.host || customer.host}:${listener.port || customer.port}${customer.protocol === 'tcp' ? '' : draft.path}` : ''
   return <div className="simulator-page">
     <div className="simulator-top"><div className="simulator-title"><div><h1>{t('simulator')}</h1><p>{t(locked ? 'stopToEdit' : 'manualStart')}</p></div><div className="simulator-title-actions"><TransferDialog module="simulator" customer={customer ? { id: customer.id, name: customer.name, interfaces: customer.endpoints } : undefined} hasCustomers={!!snapshot.config.customers.length} disabled={busy || endpointDirty} locked={locked} /><span className={`runtime-badge phase-${snapshot.runtime.phase}`} role="status"><Circle size={7} fill="currentColor" />{t(snapshot.runtime.phase)}</span></div></div>

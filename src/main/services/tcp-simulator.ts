@@ -1,3 +1,7 @@
+/**
+ * TCP 服务实现：字节流 → 完整帧 → 提取接口名 → 匹配响应 → 协议包装。
+ * 分帧交给 tcp-framing，服务本身管理连接、写缓冲和生命周期。
+ */
 import { TcpFrameDecoder, encodeTcpResponse } from './tcp-framing'
 import { createServer, type Server, type Socket } from 'node:net'
 import { performance } from 'node:perf_hooks'
@@ -8,6 +12,7 @@ import { preview } from './log-buffer'
 type Callbacks = { state: (state: RuntimeState) => void; log: (entry: Omit<LogEntry, 'id' | 'time'>) => void }
 export function extractTcpName(text: string, settings = defaultTcpSettings): string | undefined {
   if (settings.extraction === 'text') return settings.separator ? text.split(settings.separator, settings.index + 1)[settings.index] : text
+  // 只沿点分路径读取自身属性，拒绝原型相关字段；最终仅字符串或数字可作为接口名。
   let value: unknown = JSON.parse(text)
   for (const key of settings.field.split('.')) {
     if (!value || typeof value !== 'object' || !Object.hasOwn(value, key) || ['__proto__', 'constructor', 'prototype'].includes(key)) return undefined
@@ -73,6 +78,7 @@ export class TcpSimulator {
   private accept(socket: Socket) {
     this.sockets.add(socket)
     const settings = this.customer?.tcp ?? defaultTcpSettings
+    // 连接之间不共享半包缓存，防止不同客户端的字节被拼成同一帧。
     const decoder = new TcpFrameDecoder(settings)
     socket.setTimeout(60000, () => socket.destroy())
     socket.on('error', () => this.event('TCP_CONNECTION_ERROR', 'warn'))
@@ -80,6 +86,7 @@ export class TcpSimulator {
     socket.on('data', (chunk: Buffer) => {
       if (this.state.phase !== 'running') return
       try {
+        // 一个 data 可能只有半包，也可能含多包；回调返回 false 可在断连后停止继续处理。
         decoder.push(chunk, (frame) => { this.handle(socket, frame); return !socket.destroyed })
       } catch (error) {
         // 长度或尾标损坏后无法可靠重同步，丢弃该连接，绝不猜测正文边界。
@@ -107,6 +114,7 @@ export class TcpSimulator {
     if (code === 'TCP_REQUEST') {
       try {
         const outgoing = encodeTcpResponse(response, settings)
+        // write 只是进入本机发送缓冲；对端读取过慢时主动断开，防止缓冲持续增长。
         if (socket.writableLength + outgoing.length > 2 * BODY_LIMIT + 64) { code = 'TCP_BACKPRESSURE'; socket.destroy() }
         else socket.write(outgoing)
       } catch (error) {

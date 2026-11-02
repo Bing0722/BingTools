@@ -1,3 +1,6 @@
+/**
+ * 串口日志面板：独立订阅日志，用固定行高虚拟列表承载高频记录。
+ */
 import { useLogViews } from '@/stores/log-view-store'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { ChevronDown, Pause, Play, Trash2 } from 'lucide-react'
@@ -8,6 +11,7 @@ import { Dialog } from '@/components/ui/dialog'
 import type { MotionLog } from '../../../../shared/schemas/motion'
 export function MotionLogs({ customerId }: { customerId: string | null }) {
   const { t, i18n } = useTranslation()
+  // 独立选择日志数组，配置表单无需订阅此高频数据。
   const entries = useMotion((s) => s.logs)
   const { collapsed, paused, query, filter: direction } = useLogViews((state) => state.motion)
   const updateView = (patch: Partial<ReturnType<typeof useLogViews.getState>['motion']>) => useLogViews.getState().update('motion', patch)
@@ -25,6 +29,7 @@ export function MotionLogs({ customerId }: { customerId: string | null }) {
   useEffect(() => {
     const element = list.current
     if (!element) return
+    // 容器缩放后更新视口高度，决定需要挂载的行数；卸载时清理观察器。
     const observer = new ResizeObserver(() => setViewport({ top: element.scrollTop, height: element.clientHeight }))
     observer.observe(element)
     return () => observer.disconnect()
@@ -37,6 +42,7 @@ export function MotionLogs({ customerId }: { customerId: string | null }) {
   }, [logs, paused, collapsed])
   // 固定行高虚拟列表只挂载可见区域及缓冲行，历史增长不会增加 DOM 数量。
   const rowHeight = 32
+  // 可见区域上下各预留约五行缓冲，快速滚动时减少空白；外层占位高度保留完整滚动范围。
   const start = Math.max(0, Math.min(Math.floor(viewport.top / rowHeight) - 5, logs.length - 1))
   const visible = logs.slice(start, start + Math.ceil(viewport.height / rowHeight) + 10)
   return <section className={`log-panel ${collapsed ? 'collapsed' : ''}`} aria-label={t('motionLogs')} onTransitionEnd={(event) => {

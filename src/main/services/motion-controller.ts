@@ -1,3 +1,7 @@
+/**
+ * 串口业务入口：管理客户规则、设备连接、分帧匹配、发送队列和批量日志。
+ * 业务命令队列与字节发送队列分开，自动回复和手动发送共用后者。
+ */
 import type { TransferData } from '../../shared/schemas/transfer'
 import { mergeMotionTransfer } from './transfer-data'
 import { randomUUID } from 'node:crypto'
@@ -10,6 +14,7 @@ export class MotionRepository extends JsonRepository<MotionConfig> {
   constructor(path: string) { super(path, defaultMotionConfig, parseMotionConfig) }
 }
 export type MotionPort = Pick<SerialPort, 'on' | 'open' | 'close' | 'write' | 'drain' | 'isOpen' | 'destroy'>
+// 驱动接口可注入测试替身；正式环境仍通过 serialport 访问系统串口。
 export interface SerialDriver { list: typeof SerialPort.list; create: (settings: SerialSettings) => MotionPort }
 const nativeDriver: SerialDriver = { list: () => SerialPort.list(), create: (s) => new SerialPort({ path: s.path, baudRate: s.baudRate, dataBits: s.dataBits, stopBits: s.stopBits, parity: s.parity, rtscts: s.rtscts, autoOpen: false }) }
 export function payload(rule: MotionRule, field: 'receive' | 'response'): Buffer { return Buffer.from(rule.format === 'hex' ? rule[field].replace(/\s/g, '') : rule[field], rule.format === 'hex' ? 'hex' : 'utf8') }
@@ -33,6 +38,7 @@ export class MotionController {
   private matches: { suffix: Buffer; ignore: number; rules: Map<string, MotionRule> }[] = []
   private port?: MotionPort
   private framer?: SerialFramer
+  // queue 串行化配置及连接操作；writes 保证自动回复与手动发送的字节不会交错。
   private queue = Promise.resolve()
   private writes = Promise.resolve()
   private pendingWrites = 0
@@ -40,6 +46,7 @@ export class MotionController {
   private listeners = new Set<(event: MotionEvent) => void>()
   private logs: MotionLog[] = []
   private pending: MotionLog[] = []
+  // 日志 ID 独立于配置 revision，便于批量补发、初始化去重和按清空边界过滤。
   private sequence = 0
   private batchTimer?: ReturnType<typeof setTimeout>
   constructor(private repository: MotionRepository, private driver: SerialDriver = nativeDriver) {}
@@ -81,6 +88,7 @@ export class MotionController {
   }
   private async apply(command: MotionCommand) {
     if (command.type === 'stop') { await this.stop(); return }
+    // 同时清理历史和未推送批次，throughId 告诉页面哪些旧日志已经失效。
     if (command.type === 'clearLogs') {
       this.logs = command.customerId ? this.logs.filter((v) => v.customerId !== command.customerId) : []
       this.pending = command.customerId ? this.pending.filter((v) => v.customerId !== command.customerId) : []
@@ -125,6 +133,7 @@ export class MotionController {
       }
     }
     try { await this.repository.update(motionConfigSchema.parse(config)) } catch { throw new Error('SAVE_FAILED') }
+    // 持久化成功才替换活动规则索引，写盘失败时串口继续使用原规则。
     if (this.activeCustomer) this.setActive(config.customers.find((v) => v.id === this.activeCustomer!.id))
     this.changed()
   }
@@ -134,6 +143,7 @@ export class MotionController {
     const groups = new Map<string, { suffix: Buffer; ignore: number; rules: Map<string, MotionRule> }>()
     for (const rule of customer?.rules ?? []) {
       if (!rule.enabled) continue
+      // 按尾部处理参数分组，组内再用接收字节的 HEX 作为键，减少每帧重复处理。
       const key = `${rule.receiveSuffix.toUpperCase()}:${rule.ignoreTailBytes}`
       let group = groups.get(key)
       if (!group) { group = { suffix: Buffer.from(rule.receiveSuffix, 'hex'), ignore: rule.ignoreTailBytes, rules: new Map() }; groups.set(key, group) }
@@ -164,6 +174,7 @@ export class MotionController {
       this.log('rx', rule ? 'MOTION_MATCHED' : 'MOTION_UNMATCHED', frame, rule?.name)
       if (current && rule) void this.send(rule, current).catch(() => {})
     }, () => this.log('event', 'MOTION_FRAME_TOO_LARGE', undefined, undefined, 'error'))
+    // 所有设备回调比较实例身份，旧连接延迟到达的事件不能影响新连接。
     port.on('data', (data: Buffer) => { if (this.port === port) this.framer?.feed(data) })
     port.on('error', (error: Error) => { if (this.port === port) { this.fail(serialError(error)); this.scheduleStop() } })
     port.on('close', () => { if (this.port === port && this.phase !== 'stopping') { this.port = undefined; this.framer?.dispose(); this.fail('MOTION_DISCONNECTED') } })
@@ -184,6 +195,7 @@ export class MotionController {
     const port = this.port
     if (!port || this.phase !== 'running') return Promise.reject(new Error('MOTION_NOT_CONNECTED'))
     if (this.pendingWrites >= 100) { this.log('event', 'MOTION_QUEUE_FULL', undefined, undefined, 'error'); return Promise.reject(new Error('MOTION_QUEUE_FULL')) }
+    // 先固定本次待发内容，再排队；等待期间规则被编辑也不会改写这次发送。
     const bytes = Buffer.concat([payload(rule, 'response'), rule.appendDelimiter ? Buffer.from(customer.serial.delimiter, 'hex') : Buffer.alloc(0)])
     this.pendingWrites++
     const operation = this.writes.then(async () => {
@@ -192,6 +204,7 @@ export class MotionController {
         const timer = setTimeout(() => reject(new Error('MOTION_WRITE_TIMEOUT')), 3000)
         port.write(bytes, (error) => {
           if (error) { clearTimeout(timer); reject(error); return }
+          // write 回调之后还要等待 drain，确认驱动发送缓冲排空才记录成功并处理下一项。
           port.drain((drainError) => { clearTimeout(timer); if (drainError) reject(drainError); else resolve() })
         })
       })
@@ -201,6 +214,7 @@ export class MotionController {
       if (this.port === port && this.phase === 'running') { this.fail(code); this.scheduleStop() }
       throw new Error(code)
     }).finally(() => { this.pendingWrites-- })
+    // 把拒绝转换为已完成的队列尾部，单次发送失败不能让后续队列永久挂在 rejected 上。
     this.writes = operation.catch(() => {})
     return operation
   }

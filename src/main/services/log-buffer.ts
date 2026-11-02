@@ -1,3 +1,6 @@
+/**
+ * 服务器会话日志：集中处理正文预览、敏感头部脱敏和历史条数上限。
+ */
 import { randomUUID } from 'node:crypto'
 import type { IncomingHttpHeaders } from 'node:http'
 import { PREVIEW_LIMIT } from '../../shared/schemas/simulator'
@@ -11,6 +14,7 @@ export function preview(value: string | Buffer): { text: string; truncated: bool
   if (end < bytes.length) while (end > 0 && (bytes[end] & 0xc0) === 0x80) end--
   return { text: bytes.subarray(0, end).toString('utf8'), truncated: bytes.length > end }
 }
+// 大小写不敏感地隐藏认证、Cookie 与常见密钥头，其他头也统一限制预览长度。
 export function redactHeaders(headers: IncomingHttpHeaders): Record<string, string> {
   return Object.fromEntries(Object.entries(headers).map(([key, value]) => [key,
     /authorization|cookie|token|api[-_]?key|secret/i.test(key) ? '[REDACTED]' : preview(Array.isArray(value) ? value.join(', ') : value ?? '').text,
@@ -21,6 +25,7 @@ export class LogBuffer {
   add(entry: Omit<LogEntry, 'id' | 'time'>): LogEntry {
     const record = { ...entry, id: randomUUID(), time: Date.now() }
     this.entries.push(record)
+    // 只保留最近 1000 条；长时间运行不会让历史日志无限增长。
     if (this.entries.length > 1000) this.entries.splice(0, this.entries.length - 1000)
     return record
   }

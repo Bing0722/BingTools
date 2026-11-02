@@ -1,3 +1,6 @@
+/**
+ * 外观设置：主题色直接保存，本机字体先检测可用性再应用，错误保留在字体字段旁。
+ */
 import { useEffect, useState, type CSSProperties } from 'react'
 import { GlassPreferences } from './glass-preferences'
 import { Check } from 'lucide-react'
@@ -11,18 +14,21 @@ export function AppearancePreferences() {
   const { t } = useTranslation()
   const { preferences, saving: savingAll, savingLayout, update } = useSettings()
   const saving = savingAll && !savingLayout
+  // 字体名是局部候选草稿，尚未验证和应用时不修改正式偏好。
   const [fontChoice, setFontChoice] = useState(preferences.uiFont)
   const [family, setFamily] = useState(preferences.localFont)
   const [available, setAvailable] = useState<string[]>([])
   const [loadingFonts, setLoadingFonts] = useState(true), [checking, setChecking] = useState(false), [fontError, setFontError] = useState('')
   useEffect(() => { setFontChoice(preferences.uiFont); setFamily(preferences.localFont); setFontError('') }, [preferences.uiFont, preferences.localFont])
   useEffect(() => {
+    // 候选检测可并行；组件卸载后忽略异步结果，避免迟到结果写回视图。
     let alive = true
     void Promise.all(localFontCandidates.map(async (name) => await hasLocalFont(name) ? name : null)).then((fonts) => {
       if (alive) { setAvailable(fonts.filter((name): name is string => !!name)); setLoadingFonts(false) }
     })
     return () => { alive = false }
   }, [])
+  // 系统/内嵌字体可直接保存；本机字体必须等用户输入并检测成功后再应用。
   async function chooseFont(choice: Preferences['uiFont']) {
     setFontChoice(choice); setFontError('')
     if (choice !== 'local' && !await update({ uiFont: choice })) setFontChoice(preferences.uiFont)
