@@ -142,6 +142,8 @@ void app.whenReady().then(async () => {
   registerUpdater(updater, () => window, expectedUrl)
   updateMenu(repository.get())
   createWindow()
+  // 后台检查不阻塞窗口显示；只发现版本，不下载或安装。
+  void updater.checkOnStartup()
   app.on('activate', () => { if (!window) createWindow() })
 })
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

@@ -322,3 +322,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 同一专项验证编辑端口后直接点击启动，真实本机 HTTP 访问新端口成功，顶部高度与启动前一致，没有临时保存按钮；通过阻塞临时文件写入验证保存失败保留草稿与原配置，恢复后路由切换自动保存，无多余确认弹窗；窄窗无文档横向溢出，无 renderer 错误。
 - `pnpm test:desktop` 完整回归通过：HTTP、接口热更新、日志脱敏、未保存接口保护、通知、语言、主题、窄窗、窗口关闭和重启。检查 `test-results/stable-running.png`：运行提示位于标题副行，顶部与接口区域边界稳定。
 - 本机 macOS 验证；Windows/Linux 实机闪屏、平台渲染及本轮打包安装未验证。没有推送或发布。
+
+## 0.8.4 导航动效与更新体验（2026-11-02）
+
+- `pnpm build`（含 typecheck）、`pnpm lint`、`pnpm test` 通过；10 文件、77 项测试。新增启动仅检查一次、开发／演示跳过、失败不自动重试、不打断手动检查，以及下载／安装失败重试的状态验证。没有新依赖；保留既有块体积和依赖注释提示。
+- `node scripts/update-motion-smoke.mjs` 通过：真实 Electron 记录导航移动中间帧与最终位置，页面保持不透明，验证更新红点、弹窗与设置共享进度、关闭后焦点恢复且无滞留 Tooltip、重试入口、安装确认、手动下载状态、简中深色 800×560 及减少动态效果。使用受控更新状态，不下载或执行安装。
+- `node scripts/update-header-smoke.mjs` 与 `pnpm test:desktop` 通过：旧快照不能清除红点、新“无更新”状态清除红点；语言、键盘、窄窗、HTTP、接口编辑、通知及窗口生命周期回归通过。
+- 检查 update-modern-light、update-modern-download、update-modern-dark-narrow 截图。精简重复下载说明，下载中折叠说明，缺少新版说明时不再显示当前版本的说明。首次专项脚本安装标题及回归脚本折叠说明定位与新界面不一致，已同步后完整通过。
+- 启动检查使用模拟后端验证控制器；真实线上更新下载、Windows 安装升级、Linux 实机及本轮安装包未验收。macOS 未签名、公证，仍需手动下载。无推送、标签或远端发布。

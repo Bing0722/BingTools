@@ -29,14 +29,16 @@ try {
     BrowserWindow.getAllWindows()[0].webContents.send('updater:event', { revision: 99, mode: 'demo', currentVersion: '0.4.4', phase: 'idle', progress: 0 })
   })
   await page.getByRole('button', { name: '演示检查更新', exact: true }).click()
-  await page.locator('.update-checking-icon').waitFor()
+  await page.locator('.update-trigger .update-checking-icon').waitFor()
   await page.locator('.update-dot').waitFor()
   await page.getByRole('dialog').getByText('模拟更新说明', { exact: true }).waitFor()
   await page.keyboard.press('Escape')
   await page.getByRole('dialog').waitFor({ state: 'hidden' })
   assert.equal(await page.locator('.update-trigger').evaluate((el) => el === document.activeElement), true)
+  await page.waitForTimeout(900)
+  assert.equal(await page.getByRole('tooltip').count(), 0)
   await page.getByRole('link', { name: '设置', exact: true }).click()
-  await page.getByText('新版本 0.4.5', { exact: true }).waitFor()
+  await page.locator('.update-versions').getByText('0.4.5', { exact: true }).waitFor()
   assert.equal(await page.locator('.update-dot').count(), 1)
   // 旧快照不能清掉已知更新；最新的“无更新”状态应清除红点。
   for (const revision of [98, 112]) {

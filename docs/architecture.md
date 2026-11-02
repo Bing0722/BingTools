@@ -194,3 +194,5 @@ Providers 从统一 colorPalettes 映射浅深主色，设置 --theme-accent、d
 0.8.2 settings v5 增加 glassEnabled 布尔值与 glassIntensity（1–100 整数）。v1–v4 显式迁移，默认 false/55，保留字体与主题；使用原有受控设置 IPC，保存成功才更新全局 CSS。GlassPreferences 仅保留未应用的强度草稿，预览独立 CSS 变量，不在拖动期间反复落盘。Providers 设置 data-glass 与 --glass-strength，关闭后 CSS 选择器退出生效。无依赖、画布循环或窗口透明权限新增。
 
 0.8.3 settings-store 区分布局保存；其他偏好可等待布局写入后继续，保持串行持久化。SimulatorPage 顶部监听草稿复用严格 CustomerInput 校验与 saveCustomer IPC，失焦／Enter 发起一次写入，通过 Promise 合并同次启动／路由触发；pendingListener 只锁定监听输入，启动动作等待完成。失败保留草稿及原配置，路由失败保留确认，接口编辑未保存保护沿用原逻辑。切换客户在 layout effect 同步监听字段，避免旧值先绘制一帧。无新 IPC 或持久化版本。
+
+0.8.4 UpdateController.checkOnStartup 由 main 创建窗口后异步调用，每个控制器实例至多一次，仅 github 模式且 idle 时检查，不阻塞窗口、不自动下载／安装。失败保留稳定错误码供用户手动重试；renderer 的快照和事件共用 revision 防止旧快照覆盖。下载失败保留版本，可直接重新下载；安装失败允许重新确认安装，仍执行既有停服和保存流程。演示／开发模式启动不访问网络。侧栏动画位置只从当前路由的 active DOM 派生，非独立导航状态。

@@ -6,6 +6,7 @@ export interface UpdateBackend {
 }
 /** 更新状态仅存在内存。默认演示后端不访问网络、不写文件、不重启。 */
 export class UpdateController {
+  private startupChecked = false
   private state: UpdateSnapshot
   private listeners = new Set<(state: UpdateSnapshot) => void>()
   constructor(private backend: UpdateBackend, options: Pick<UpdateSnapshot, 'mode' | 'currentVersion' | 'repository' | 'canInstall'>, private prepareInstall: () => Promise<void> = async () => {}, private recoverInstall: () => void = () => {}) {
@@ -21,6 +22,13 @@ export class UpdateController {
     if (this.state.mode === 'unavailable') throw new Error('UPDATE_PACKAGED_ONLY')
     if (['checking', 'downloading', 'installing'].includes(this.state.phase)) throw new Error('UPDATE_BUSY')
   }
+  /** 每个应用进程最多一次；演示和开发模式不发起启动请求。 */
+  async checkOnStartup(): Promise<void> {
+    if (this.startupChecked) return
+    this.startupChecked = true
+    if (this.state.mode !== 'github' || this.state.phase !== 'idle') return
+    await this.check()
+  }
   async check(): Promise<UpdateSnapshot> {
     this.assertAvailable()
     if (this.state.phase === 'downloaded') throw new Error('UPDATE_ALREADY_DOWNLOADED')
@@ -35,7 +43,7 @@ export class UpdateController {
   async download(): Promise<UpdateSnapshot> {
     this.assertAvailable()
     if (this.state.canInstall === false) throw new Error('UPDATE_MANUAL_ONLY')
-    if (this.state.phase !== 'available') throw new Error('UPDATE_CHECK_FIRST')
+    if (this.state.phase !== 'available' && !(this.state.phase === 'error' && this.state.error === 'UPDATE_DOWNLOAD_FAILED' && this.state.version)) throw new Error('UPDATE_CHECK_FIRST')
     this.set({ phase: 'downloading', error: undefined, progress: 0 })
     try {
       await this.backend.download((percent) => this.set({ progress: Math.max(0, Math.min(100, Number.isFinite(percent) ? percent : 0)) }))
@@ -52,7 +60,7 @@ export class UpdateController {
     this.assertAvailable()
     if (this.state.canInstall === false) throw new Error('UPDATE_MANUAL_ONLY')
     if (this.state.mode === 'demo') throw new Error('UPDATE_DEMO_ONLY')
-    if (this.state.phase !== 'downloaded') throw new Error('UPDATE_DOWNLOAD_FIRST')
+    if (this.state.phase !== 'downloaded' && !(this.state.phase === 'error' && this.state.error === 'UPDATE_INSTALL_FAILED')) throw new Error('UPDATE_DOWNLOAD_FIRST')
     this.set({ phase: 'installing', error: undefined })
     try { await this.prepareInstall(); this.backend.install() }
     catch { this.installFailed() }

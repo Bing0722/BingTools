@@ -156,6 +156,7 @@ try {
     await updatePanel.getByText(/Demo complete/).waitFor()
   } else {
     assert.equal(updateState.data.repository, 'Bing0722/BingTools')
+    await updatePanel.locator('.update-notes summary').click()
     await updatePanel.getByText(`BingTools ${packageInfo.version}`, { exact: false }).waitFor()
   }
   assert.equal((await page.evaluate(() => window.app.updater.install())).ok, false)

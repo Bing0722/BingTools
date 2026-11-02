@@ -2,9 +2,9 @@
 
 ## 当前配置
 
-公开仓库：[Bing0722/BingTools](https://github.com/Bing0722/BingTools)。更新源固定为该仓库的 GitHub Releases，客户端不包含 Token。`release.config.json` 指定仓库，开发态只显示更新源；安装后的应用可手动检查稳定版本。
+公开仓库：[Bing0722/BingTools](https://github.com/Bing0722/BingTools)。更新源固定为该仓库的 GitHub Releases，客户端不包含 Token。`release.config.json` 指定仓库，开发态只显示更新源；安装后的应用启动时后台检查一次稳定版本，也可手动检查；下载和安装仍需用户操作。
 
-版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.8.3.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
+版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.8.4.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
 
 ## 自动构建
 
@@ -32,7 +32,7 @@
 
 ## 更新行为与限制
 
-- 不自动检查、不自动下载、不在退出时自动安装；用户在设置中检查 → 下载 → 确认重启安装。
+- 正式安装版每次启动后台检查一次，发现新版本显示右上角红点；不自动下载、不在退出时自动安装。用户在更新窗口或设置中下载 → 确认重启安装；开发／演示模式启动不检查网络。
 - Windows 使用 electron-updater + NSIS 下载校验并安装。当前包未签名，系统可能提示未知发布者；发布后仍需真实 Windows 升级安装验收。
 - macOS 当前没有 Developer ID 签名和公证，因此禁用自动下载／原位安装，提供固定 GitHub 下载页手动更新；可以检查新版本及查看说明。要启用 macOS 自动安装，后续须在受控 CI 配置 CSC_LINK 等签名凭据，移除禁用证书自动发现的环境约束并完成公证及双版本验收。
 - 下载校验由 electron-updater 处理，不放宽签名检查。安装前停止 HTTP 服务、保存配置、等待写入；安装错误恢复正常退出处理。

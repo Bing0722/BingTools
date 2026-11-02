@@ -3,7 +3,6 @@ import { RefreshCw } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
 import { Dialog } from '@/components/ui/dialog'
-import { Tooltip } from '@/components/ui/tooltip'
 import { useUpdates, runUpdate } from '@/stores/update-store'
 import { UpdateSection } from './update-section'
 
@@ -21,9 +20,9 @@ export function UpdateTrigger() {
     if (snapshot && snapshot.mode !== 'unavailable' && !pending && ['idle', 'current', 'error'].includes(snapshot.phase) && !available) void runUpdate(() => window.app.updater.check())
   }
   return <>
-    <Tooltip label={label}><Button variant="ghost" size="sm" className="update-trigger" aria-label={[label, status].filter(Boolean).join(' · ')} aria-haspopup="dialog" aria-expanded={open} onClick={showUpdates}>
+    <Button variant="ghost" size="sm" className="update-trigger" aria-label={[label, status].filter(Boolean).join(' · ')} aria-haspopup="dialog" aria-expanded={open} onClick={showUpdates}>
       <RefreshCw size={16} className={checking ? 'update-checking-icon' : undefined} /><span>{label}</span>{available && <span className="update-dot" aria-hidden="true" />}
-    </Button></Tooltip>
+    </Button>
     <Dialog open={open} onOpenChange={setOpen} title={t('updates')} description={t('updateEntryHelp')} className="update-dialog"><UpdateSection /></Dialog>
   </>
 }

@@ -74,3 +74,40 @@ it('preserves release notes and enforces manual installation for unsigned builds
   await expect(controller.install()).rejects.toThrow('UPDATE_MANUAL_ONLY')
   expect(source.download).not.toHaveBeenCalled()
 })
+
+it('checks once at startup only in real mode without downloading or installing', async () => {
+  const source = backend()
+  const controller = new UpdateController(source, options)
+  await Promise.all([controller.checkOnStartup(), controller.checkOnStartup()])
+  expect(source.check).toHaveBeenCalledTimes(1)
+  expect(source.download).not.toHaveBeenCalled()
+  expect(source.install).not.toHaveBeenCalled()
+  expect(controller.snapshot()).toMatchObject({ phase: 'available', version: '0.3.0' })
+  for (const mode of ['demo', 'unavailable'] as const) {
+    const other = backend()
+    await new UpdateController(other, { ...options, mode }).checkOnStartup()
+    expect(other.check).not.toHaveBeenCalled()
+  }
+})
+it('does not repeat failed startup checks or interrupt a manual check', async () => {
+  const source = backend(); source.check = vi.fn().mockRejectedValue(new Error('offline'))
+  const controller = new UpdateController(source, options)
+  await controller.checkOnStartup(); await controller.checkOnStartup()
+  expect(source.check).toHaveBeenCalledTimes(1)
+  expect(controller.snapshot()).toMatchObject({ phase: 'error', error: 'UPDATE_CHECK_FAILED' })
+  const other = backend(), manual = new UpdateController(other, options)
+  const check = manual.check(); await manual.checkOnStartup(); await check
+  expect(other.check).toHaveBeenCalledTimes(1)
+})
+it('allows retrying failed downloads and installations without losing the available version', async () => {
+  const source = backend()
+  source.download = vi.fn().mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined)
+  source.install = vi.fn().mockImplementationOnce(() => { throw new Error('installer') }).mockImplementationOnce(() => {})
+  const controller = new UpdateController(source, options)
+  await controller.check()
+  expect(await controller.download()).toMatchObject({ phase: 'error', version: '0.3.0' })
+  expect(await controller.download()).toMatchObject({ phase: 'downloaded', progress: 100 })
+  expect(await controller.install()).toMatchObject({ phase: 'error', error: 'UPDATE_INSTALL_FAILED' })
+  expect(await controller.install()).toMatchObject({ phase: 'installing' })
+  expect(source.install).toHaveBeenCalledTimes(2)
+})
