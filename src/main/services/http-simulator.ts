@@ -6,6 +6,12 @@ import { preview, redactHeaders } from './log-buffer'
 
 type Callbacks = { state: (state: RuntimeState) => void; log: (entry: Omit<LogEntry, 'id' | 'time'>) => void }
 export class HttpSimulator {
+  private readonly pendingResponses = new Map<ServerResponse, ReturnType<typeof setTimeout>>()
+  private cancelPendingResponses(): void {
+    // 停服立即取消延时并断开等待连接，不让旧定时器跨越服务生命周期。
+    for (const [response, timer] of this.pendingResponses) { clearTimeout(timer); response.destroy() }
+    this.pendingResponses.clear()
+  }
   private server?: Server
   private customer?: Customer
   private state: RuntimeState = { phase: 'stopped' }
@@ -45,6 +51,7 @@ export class HttpSimulator {
         this.setState({ ...identity, phase: 'failed', error: 'SERVER_ERROR' })
         this.event('SERVER_ERROR', 'error')
         // 异常后释放监听资源，不留下表面失败但仍占端口的实例。
+        this.cancelPendingResponses()
         server.close(); server.closeAllConnections(); this.server = undefined
       })
       this.setState({ ...identity, phase: 'running' })
@@ -62,6 +69,7 @@ export class HttpSimulator {
     const server = this.server
     if (!server) { this.setState({ phase: 'stopped' }); return }
     this.setState({ ...this.state, phase: 'stopping', error: undefined })
+    this.cancelPendingResponses()
     // 正常连接最多等待三秒；超时强制断开，保证关闭窗口不会无限等待。
     await new Promise<void>((resolve) => {
       const timer = setTimeout(() => { server.closeAllConnections(); resolve() }, 3000)
@@ -104,6 +112,11 @@ export class HttpSimulator {
       })
       response.end(outgoing)
     }
+    response.once('close', () => {
+      const timer = this.pendingResponses.get(response)
+      if (timer) clearTimeout(timer)
+      this.pendingResponses.delete(response)
+    })
     request.on('data', (chunk: Buffer) => {
       size += chunk.length
       // 预览只收集前 8KiB 左右，限制正文缓存，不把整个请求保存在日志中。
@@ -114,8 +127,19 @@ export class HttpSimulator {
       if (size > BODY_LIMIT) reply(413, 'Payload too large', 'text', 'PAYLOAD_TOO_LARGE')
     })
     request.on('end', () => {
+      if (finished || response.destroyed) return
       if (!endpoint) reply(404, 'Not found', 'text', 'NOT_FOUND')
-      else reply(endpoint.status, endpoint.body, endpoint.format, 'HTTP_REQUEST')
+      else if (endpoint.responseDelay?.enabled && endpoint.responseDelay.ms > 0) {
+        if (this.state.phase !== 'running') { response.destroy(); return }
+        if (this.pendingResponses.size >= 256) { reply(503, 'Too many pending responses', 'text', 'SERVER_ERROR'); return }
+        // 正文接收完后才延时，关闭此连接的空闲计时以支持超过 15 秒的配置。
+        response.setTimeout(0)
+        const timer = setTimeout(() => {
+          this.pendingResponses.delete(response)
+          reply(endpoint.status, endpoint.body, endpoint.format, 'HTTP_REQUEST')
+        }, endpoint.responseDelay.ms)
+        this.pendingResponses.set(response, timer)
+      } else reply(endpoint.status, endpoint.body, endpoint.format, 'HTTP_REQUEST')
     })
     request.on('error', () => {
       if (!finished) this.callbacks.log({ customerId: customer.id, customerName: customer.name, code: 'REQUEST_ABORTED', level: 'warn', method, path })

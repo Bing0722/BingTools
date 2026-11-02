@@ -75,7 +75,7 @@ src/renderer/src/
 
 `settings.json` schemaVersion 3 保存 theme、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1/v2 显式迁移，补右下角通知位置；v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
-`simulator.json` schemaVersion 4 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
+`simulator.json` schemaVersion 5 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
 日志与通知从不持久化。完整设置和客户数据会留在本机 userData，不进入 Git。
 
@@ -166,3 +166,5 @@ encodeTcpResponse 与接收共用单位、进制、范围计算；补零生成�
 simulator.json 升级 schemaVersion 3；v1/v2 显式迁移，未配置 lengthHeader 的客户保持原行为。跨进程配置使用 Zod 校验，整包字符计数要求尾标为有效 UTF-8；不执行表达式、脚本或原始 socket IPC。
 
 长度头新增可选 prefix／suffix，按 UTF-8 固定文本验证，正文偏移包含前缀、数字和后缀；整包计数包含所有固定文本。schema v1–v3 迁移到 v4，缺省标志为空。回复使用同一偏移和计数规则，头标志不匹配则记录 TCP_INVALID_HEADER 并断开连接。
+
+HTTP endpoint.responseDelay 为可选 { enabled, ms }，ms 为 0–60000 整数，主进程与页面共用严格校验。simulator.json schema v5 接受 v1–v4 迁移，缺省表示不延时。接收完成后通过定时器等待，保留请求开始时的配置；单个服务最多 256 个等待响应，超出返回 503。延时连接暂时禁用 socket 空闲超时；响应结束后由 HTTP keep-alive 超时管理。断开、停服及服务异常清理定时器；413/404 不延时。

@@ -340,3 +340,5 @@ textarea { resize:vertical; }
 .tcp-customer-dialog { max-height:90vh; overflow-y:auto; }
 @media (prefers-reduced-motion:reduce) { .tcp-settings { animation:none; } }
 .customer-form .tcp-length-row { grid-template-columns:minmax(0,1fr) minmax(0,1fr); }
+
+.response-delay-fields { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:12px; align-items:end; }

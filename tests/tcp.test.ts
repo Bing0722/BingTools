@@ -80,7 +80,7 @@ it('migrates v1 and persists TCP configuration, rejecting duplicate names and fa
   const dir = await mkdtemp(join(tmpdir(), 'bingtools-tcp-')); cleanup.push(() => rm(dir, { recursive: true, force: true }))
   const file = join(dir, 'simulator.json')
   const config = parseSimulatorConfig({ schemaVersion: 1, selectedCustomerId: null, customers: [] })
-  expect(config.schemaVersion).toBe(4)
+  expect(config.schemaVersion).toBe(5)
   await writeFile(file, JSON.stringify({ ...config, schemaVersion: 1 }))
   const repository = new SimulatorRepository(file); await repository.load()
   const controller = new SimulatorController(repository); cleanup.push(() => controller.shutdown())
@@ -168,7 +168,7 @@ it('migrates old delimiter settings unchanged and persists length header configu
   await writeFile(file, JSON.stringify({ schemaVersion: 2, selectedCustomerId: customer.id, customers: [customer] }))
   const repository = new SimulatorRepository(file); await repository.load()
   expect(repository.get().customers[0]).toEqual(customer)
-  expect(repository.get().schemaVersion).toBe(4)
+  expect(repository.get().schemaVersion).toBe(5)
   const next = repository.get(); next.customers[0].tcp = { ...defaultTcpSettings, lengthHeader: { ...defaultTcpLengthHeader, width: 6 } }
   await repository.update(next)
   const restored = new SimulatorRepository(file); await restored.load()
@@ -201,5 +201,5 @@ it('counts fixed UTF-8 header markers in frame lengths and rejects wrong header 
   }
   const settings = { ...defaultTcpSettings, delimiter: '3C54543E', lengthHeader: { ...defaultTcpLengthHeader, width: 5, prefix: '<HH', suffix: '>' } }
   expect(() => new TcpFrameDecoder(settings).push(Buffer.from('<HH00002!{}<TT>'), () => {})).toThrow('TCP_INVALID_HEADER')
-  expect(parseSimulatorConfig({ schemaVersion: 3, selectedCustomerId: null, customers: [] }).schemaVersion).toBe(4)
+  expect(parseSimulatorConfig({ schemaVersion: 3, selectedCustomerId: null, customers: [] }).schemaVersion).toBe(5)
 })

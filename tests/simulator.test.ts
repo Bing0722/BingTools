@@ -9,7 +9,7 @@ import { HttpSimulator } from '../src/main/services/http-simulator'
 import { SimulatorController } from '../src/main/services/simulator-controller'
 import { SimulatorRepository } from '../src/main/storage/simulator-repository'
 import { LogBuffer, preview, redactHeaders } from '../src/main/services/log-buffer'
-import { BODY_LIMIT, customerInputSchema, endpointSchema, simulatorCommandSchema, type Customer, type Endpoint } from '../src/shared/schemas/simulator'
+import { BODY_LIMIT, parseSimulatorConfig, customerInputSchema, endpointSchema, simulatorCommandSchema, type Customer, type Endpoint } from '../src/shared/schemas/simulator'
 import type { LogEntry } from '../src/shared/contracts/simulator'
 
 const cleanup: (() => Promise<unknown>)[] = []
@@ -48,6 +48,60 @@ async function repositoryFixture() {
 }
 
 describe('real HTTP simulator', () => {
+  it('delays independently, preserves in-flight snapshots and measures waiting time', async () => {
+    const delayed = endpoint({ responseDelay: { enabled: true, ms: 300 } })
+    const { service, config, url, logs } = await serviceFixture([delayed, endpoint({ path: '/fast' })])
+    const started = performance.now()
+    let completed = false
+    const pending = fetch(url + delayed.path).then(async (response) => { completed = true; return response.text() })
+    // 等待服务确实收到请求，再改配置，验证请求开始时的快照。
+    await vi.waitFor(() => expect((service as unknown as { pendingResponses: Map<unknown, unknown> }).pendingResponses.size).toBe(1))
+    config.endpoints[0] = { ...delayed, body: '{"new":true}', responseDelay: { enabled: false, ms: 60000 } }
+    service.setCustomer(config)
+    expect(await (await fetch(url + '/fast')).json()).toEqual({ ok: true })
+    expect(await (await fetch(url + delayed.path)).json()).toEqual({ new: true })
+    expect(completed).toBe(false)
+    expect(await pending).toBe('{"ok":true}')
+    expect(performance.now() - started).toBeGreaterThanOrEqual(280)
+    expect(logs.find((entry) => entry.responsePreview === '{"ok":true}' && entry.path === delayed.path)?.duration).toBeGreaterThanOrEqual(280)
+  })
+  it('cleans delayed responses on disconnect and stop, then can restart', async () => {
+    const { service, config, url } = await serviceFixture([endpoint({ responseDelay: { enabled: true, ms: 60000 } })])
+    const pendingCount = () => (service as unknown as { pendingResponses: Map<unknown, unknown> }).pendingResponses.size
+    const abort = new AbortController()
+    const first = fetch(url + '/api/example', { signal: abort.signal }).catch(() => undefined)
+    await vi.waitFor(() => expect(pendingCount()).toBe(1))
+    abort.abort(); await first
+    await vi.waitFor(() => expect(pendingCount()).toBe(0))
+    const second = fetch(url + '/api/example').catch(() => undefined)
+    await vi.waitFor(() => expect(pendingCount()).toBe(1))
+    const started = performance.now()
+    await service.stop(); await second
+    expect(pendingCount()).toBe(0)
+    expect(performance.now() - started).toBeLessThan(2000)
+    config.endpoints[0].responseDelay = { enabled: true, ms: 0 }
+    await service.start(config)
+    expect((await fetch(url + '/api/example')).status).toBe(200)
+  })
+  it('validates delay input, migrates old configurations and persists delay settings', async () => {
+    for (const ms of [-1, 0.5, 60001, NaN, Infinity, '100']) {
+      expect(endpointSchema.safeParse({ ...endpoint(), responseDelay: { enabled: true, ms } }).success).toBe(false)
+    }
+    expect(endpointSchema.safeParse(endpoint({ responseDelay: { enabled: true, ms: 60000 } })).success).toBe(true)
+    const original = await customer()
+    const migrated = parseSimulatorConfig({ schemaVersion: 4, selectedCustomerId: original.id, customers: [original] })
+    expect(migrated.schemaVersion).toBe(5)
+    expect(migrated.customers[0].endpoints[0].responseDelay).toBeUndefined()
+    const { controller, path, repository } = await repositoryFixture()
+    const { endpoints, ...input } = original
+    const entry = { ...endpoints[0], responseDelay: { enabled: true, ms: 250 } }
+    await controller.execute({ type: 'saveCustomer', customer: input })
+    await controller.execute({ type: 'saveEndpoint', customerId: input.id, endpoint: entry })
+    vi.spyOn(repository, 'update').mockRejectedValueOnce(new Error('disk full'))
+    await expect(controller.execute({ type: 'saveEndpoint', customerId: input.id, endpoint: { ...entry, responseDelay: { enabled: false, ms: 500 } } })).rejects.toThrow('SAVE_FAILED')
+    expect(controller.snapshot().config.customers[0].endpoints[0].responseDelay).toEqual(entry.responseDelay)
+    expect((await new SimulatorRepository(path).load()).customers[0].endpoints[0].responseDelay).toEqual(entry.responseDelay)
+  })
   it('matches exact method and pathname, ignores queries and applies live changes', async () => {
     const { service, config, url, logs } = await serviceFixture()
     const first = await fetch(`${url}/api/example?ignored=1`)
