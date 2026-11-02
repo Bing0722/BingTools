@@ -338,3 +338,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `node scripts/route-stability-smoke.mjs` 通过：真实 Electron 在浅色及深色玻璃主题下反复切换 HTTP／运控页面，对每次切换采样 360ms，确认各帧工作区 transform 为 none、透明度为 1，相对位置及宽高稳定。
 - `node scripts/log-view-smoke.mjs` 通过，日志独立收起、筛选、暂停及会话恢复无回归。样式修复未新增镜像式单元测试。
 - 本机 macOS 验证，Windows/Linux 实机及本轮安装包未验证；没有推送或发布。
+
+### 0.8.5 GitHub 正式发布
+
+- [v0.8.5 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/41448028259)通过；Windows 2022 x64 与 macOS 14 ARM64 完成类型检查、Lint、测试、版本说明校验、原生打包及发布。
+- [v0.8.5 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.8.5)为最新稳定版本，含 Windows EXE、macOS DMG/ZIP、blockmap 与两份更新清单，共 8 个资产。公开清单均标记 0.8.5，含匹配资产名及 SHA-512。
+- Windows/Linux 实机安装、真实升级和用户设备协议仍未验收；macOS 包未签名、公证，需手动下载安装。
