@@ -498,7 +498,8 @@ input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
 .sidebar .nav-item:hover svg { transform:translateY(-1px); }
 .sidebar .nav-item:active svg { transform:scale(.9); }
 @keyframes page-arrive { from { transform:translateX(7px); } to { transform:translateX(0); } }
-.page-scroll > :is(.page-container,.simulator-page,.motion-page) { animation:page-arrive var(--motion-panel) var(--motion-ease); }
+/* 仿真工作区包含固定边界与日志，不整体平移，避免切换时视觉抖动。 */
+.page-scroll > .page-container { animation:page-arrive var(--motion-panel) var(--motion-ease); }
 .button { transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast),box-shadow var(--motion-fast),transform var(--motion-fast); }
 .button:active:not(:disabled) { transform:translateY(1px) scale(.98); }
 .update-dialog { width:min(620px,calc(100vw - 40px)); }

@@ -4,7 +4,7 @@
 
 公开仓库：[Bing0722/BingTools](https://github.com/Bing0722/BingTools)。更新源固定为该仓库的 GitHub Releases，客户端不包含 Token。`release.config.json` 指定仓库，开发态只显示更新源；安装后的应用启动时后台检查一次稳定版本，也可手动检查；下载和安装仍需用户操作。
 
-版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.8.4.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
+版本由 `package.json` 唯一管理，侧栏、设置和更新页使用构建时注入的同一版本。当前版本说明位于 `docs/releases/0.8.5.md`，会嵌入界面、更新元数据及 GitHub Release。远端更新说明始终按文本显示，不执行 HTML。
 
 ## 自动构建
 

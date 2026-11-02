@@ -330,3 +330,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `node scripts/update-header-smoke.mjs` 与 `pnpm test:desktop` 通过：旧快照不能清除红点、新“无更新”状态清除红点；语言、键盘、窄窗、HTTP、接口编辑、通知及窗口生命周期回归通过。
 - 检查 update-modern-light、update-modern-download、update-modern-dark-narrow 截图。精简重复下载说明，下载中折叠说明，缺少新版说明时不再显示当前版本的说明。首次专项脚本安装标题及回归脚本折叠说明定位与新界面不一致，已同步后完整通过。
 - 启动检查使用模拟后端验证控制器；真实线上更新下载、Windows 安装升级、Linux 实机及本轮安装包未验收。macOS 未签名、公证，仍需手动下载。无推送、标签或远端发布。
+
+## 0.8.5 仿真页切换抖动（2026-11-02）
+
+- 原因为 0.8.4 的 page-arrive 将整个服务器／运控工作区横移 7px；本轮将该动效限定为普通 page-container，保留侧栏选中背景及局部控件动画。
+- `pnpm build`（含 typecheck）、`pnpm lint` 通过，0.8.5 与说明完成生产注入。保留既有依赖注释及块体积提示。
+- `node scripts/route-stability-smoke.mjs` 通过：真实 Electron 在浅色及深色玻璃主题下反复切换 HTTP／运控页面，对每次切换采样 360ms，确认各帧工作区 transform 为 none、透明度为 1，相对位置及宽高稳定。
+- `node scripts/log-view-smoke.mjs` 通过，日志独立收起、筛选、暂停及会话恢复无回归。样式修复未新增镜像式单元测试。
+- 本机 macOS 验证，Windows/Linux 实机及本轮安装包未验证；没有推送或发布。
