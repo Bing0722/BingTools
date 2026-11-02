@@ -291,3 +291,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 内嵌 Noto Sans SC 使用 Fontsource 5.3.1，在线安装并通过冻结锁文件检查；离线测试结合浏览器实际字形字体检查确认中文由打包字体渲染，无远程字体请求。完整 OFL 许可随应用保留。
 - 检查浅色森林、深色鸢紫与中文窄窗截图，控件、预览及侧栏布局正常。本机 macOS ARM64 应用目录版本为 0.8.0，针对该应用运行同一 appearance-smoke 脚本再次通过。
 - 未验证 Windows/Linux 实机、安装器或真实串口设备；macOS 未签名、公证。没有推送、标签或远端发布。
+
+### 0.8.0 GitHub 正式发布
+
+- [v0.8.0 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/41406878301)通过；Windows 2022 x64 与 macOS 14 ARM64 完成在线安装、类型检查、Lint、测试、说明校验和原生打包，发布作业成功。
+- [v0.8.0 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.8.0)为最新稳定版本，含 Windows EXE、macOS DMG/ZIP、blockmap 与两份更新清单，共 8 个资产。公开更新清单均标记 0.8.0，包含对应资产名和 SHA-512。
+- Windows/Linux 实机安装与真实串口设备仍未验收；macOS 安装包未签名、公证，需手动下载安装。
