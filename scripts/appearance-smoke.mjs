@@ -89,7 +89,7 @@ try {
   page = await launch()
   const prefs = (await page.evaluate(() => window.app.settings.get())).data.preferences
   assert.equal(prefs.themeColor, 'rose'); assert.equal(prefs.uiFont, 'noto'); assert.equal(prefs.theme, 'system')
-  assert.equal(JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8')).schemaVersion, 4)
+  assert.equal(JSON.parse(await readFile(join(directory, 'settings.json'), 'utf8')).schemaVersion, 5)
   await app.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].setSize(1200, 800))
   await page.getByRole('link', { name: 'Settings', exact: true }).click()
   await page.getByRole('button', { name: 'Reset appearance', exact: true }).click()

@@ -73,7 +73,7 @@ src/renderer/src/
 
 ## 持久化
 
-`settings.json` schemaVersion 4 保存 theme、themeColor、uiFont、localFont、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1–v3 显式迁移，补系统字体与石墨配色；v1/v2 补右下角通知位置，v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
+`settings.json` schemaVersion 5 保存 theme、themeColor、uiFont、localFont、glassEnabled、glassIntensity、language、notificationPosition、sidebarCollapsed、sidebarWidth、windowBounds。v1–v4 显式迁移，旧版本补系统字体与石墨配色，玻璃默认关闭、强度 55%；v1/v2 补右下角通知位置，v1 额外补 `language: system`，其他字段保留。renderer 只允许修改偏好，窗口坐标仍由 main 管理。
 
 `simulator.json` schemaVersion 5 保存 selectedCustomerId、customers；每个客户保存 id/name/host/port/protocol/endpoints。两份文件各自独立排队，采用同目录 `.tmp` 写入后 rename。内存仅在成功替换后更新。缺失文件默认值；损坏文件先更名 `.corrupt-时间戳`；新版本、读失败或备份失败均只读，避免覆盖原始数据。
 
@@ -190,3 +190,5 @@ Providers 从统一 colorPalettes 映射浅深主色，设置 --theme-accent、d
 字体资源使用在线安装并固定的 @fontsource-variable/noto-sans-sc 5.3.1；Vite 将 woff2 分片和 OFL 许可复制到 renderer 产物，不请求远程字体，assetsInlineLimit=0 保持字体从 self 加载而无需放宽 CSP。本机字体通过 FontFace(local(...)) 检查约定候选或明确输入的名称，不枚举磁盘、不读取字体文件。CSS 家族名引用经过引号转义，缺字/缺失字体回退系统；JSON/代码正文保留等宽字体。
 
 0.8.1 在 BrowserWindow 与其 session 关闭系统拼写检查，HTML 根节点同时声明 spellcheck=false，使弹窗与普通输入继承一致行为；保留业务校验与原有安全设置。标题栏侧栏按钮沿用 AppShell 状态，窄窗以导航浮层状态反馈展开，不新增状态副本。
+
+0.8.2 settings v5 增加 glassEnabled 布尔值与 glassIntensity（1–100 整数）。v1–v4 显式迁移，默认 false/55，保留字体与主题；使用原有受控设置 IPC，保存成功才更新全局 CSS。GlassPreferences 仅保留未应用的强度草稿，预览独立 CSS 变量，不在拖动期间反复落盘。Providers 设置 data-glass 与 --glass-strength，关闭后 CSS 选择器退出生效。无依赖、画布循环或窗口透明权限新增。

@@ -305,3 +305,12 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 已检查 shell-expanded 与 simulator-dark 截图：标题栏按钮圆角、方向提示、间距与浅深主题正常。没有新增依赖或镜像式样式单元测试。
 - 初次构建在沙箱中遇到 pnpm 环境检查限制，正常权限下构建通过；初次桌面断言读取的 getLastWebPreferences 不返回 spellcheck，改为检查真实 session.isSpellCheckerEnabled，并在 session 显式禁用后完整回归通过。
 - 本机 macOS 验证，Windows/Linux 实机和本轮打包安装未验证；未推送或发布。
+
+## 0.8.2 液态玻璃（2026-11-02）
+
+- `pnpm test`：10 文件、74 项通过，新增玻璃参数类型/范围、v4 迁移、保存失败不改原值、关闭保留强度及重置验证。
+- `pnpm build`（含 typecheck）、`pnpm lint` 通过，0.8.2 说明随生产构建注入。保留既有依赖注释与块体积提示；没有新增依赖。
+- `node scripts/glass-smoke.mjs` 通过：真实 Electron 键盘开关、Home/End 强度边界、预览不落盘、应用后模糊值、浅深色、关闭撤除滤镜、重启保存、简中 800×560、减少动态效果及重置。
+- `node scripts/appearance-smoke.mjs` 回归通过，覆盖字体离线加载、六套主题色、快捷切换及旧设置迁移。检查 glass-light、glass-dark、glass-narrow 截图；高强度深色面状高光已降低，避免文字被反光淹没，并完成最终构建与专项复测。
+- 初次构建时发布说明尚未生成，补齐后通过；专项测试重置按钮的中文定位纠正为现有“恢复默认外观”，最终全流程通过。
+- 本机 macOS 验证；Windows/Linux 实机及本轮安装打包未验证。效果仅在应用内呈现，不透出桌面；未推送或发布。

@@ -41,7 +41,7 @@ describe('settings persistence', () => {
     const { repository, path } = await fixture()
     const old = { schemaVersion: 3, theme: 'dark', language: 'zh-CN', notificationPosition: 'top-left', sidebarWidth: 280, sidebarCollapsed: true }
     await writeFile(path, JSON.stringify(old))
-    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 4 })
+    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 5 })
     await repository.update({ themeColor: 'green', uiFont: 'local', localFont: 'PingFang SC' })
     expect(await new SettingsRepository(path).load()).toMatchObject({ themeColor: 'green', uiFont: 'local', localFont: 'PingFang SC', theme: 'dark' })
     const before = repository.get()
@@ -60,7 +60,7 @@ describe('settings persistence', () => {
     const { repository, path } = await fixture()
     const old = { schemaVersion: 1, theme: 'dark', sidebarWidth: 280, sidebarCollapsed: true, windowBounds: { x: 10, y: 20, width: 1000, height: 700 } }
     await writeFile(path, JSON.stringify(old))
-    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 4, language: 'system', notificationPosition: 'bottom-right' })
+    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 5, language: 'system', notificationPosition: 'bottom-right' })
     await repository.update({ language: 'en' })
     expect(await new SettingsRepository(path).load()).toMatchObject({ language: 'en', theme: 'dark', windowBounds: old.windowBounds })
   })
@@ -68,7 +68,7 @@ describe('settings persistence', () => {
     const { repository, path } = await fixture()
     const old = { schemaVersion: 2, theme: 'light', language: 'en', sidebarWidth: 240, sidebarCollapsed: false }
     await writeFile(path, JSON.stringify(old))
-    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 4, notificationPosition: 'bottom-right' })
+    expect(await repository.load()).toEqual({ ...old, ...appearanceDefaults, schemaVersion: 5, notificationPosition: 'bottom-right' })
     await repository.update({ notificationPosition: 'top-left' })
     expect(await new SettingsRepository(path).load()).toMatchObject({ language: 'en', notificationPosition: 'top-left' })
   })
@@ -107,5 +107,28 @@ describe('settings persistence', () => {
     await repository.load()
     await expect(repository.update({ sidebarWidth: -1 })).rejects.toThrow()
     expect((await repository.update({ theme: 'light' })).theme).toBe('light')
+  })
+})
+
+describe('glass preferences', () => {
+  it('validates intensity and migrates v4 without enabling the effect', async () => {
+    for (const glassIntensity of [0, 101, 2.5, '50', NaN]) expect(settingsPatchSchema.safeParse({ glassIntensity }).success).toBe(false)
+    expect(settingsPatchSchema.safeParse({ glassEnabled: 'yes' }).success).toBe(false)
+    const { repository, path } = await fixture()
+    const old = { schemaVersion: 4, theme: 'dark', language: 'en', notificationPosition: 'top-left', sidebarWidth: 280, sidebarCollapsed: true, themeColor: 'rose', uiFont: 'noto', localFont: 'Arial' }
+    await writeFile(path, JSON.stringify(old))
+    expect(await repository.load()).toEqual({ ...old, schemaVersion: 5, glassEnabled: false, glassIntensity: 55 })
+    await repository.update({ glassEnabled: true, glassIntensity: 100 })
+    expect(await new SettingsRepository(path).load()).toMatchObject({ glassEnabled: true, glassIntensity: 100 })
+    await mkdir(`${path}.tmp`)
+    await expect(repository.update({ glassIntensity: 1 })).rejects.toThrow()
+    expect(repository.get().glassIntensity).toBe(100)
+    expect(await new SettingsRepository(path).load()).toMatchObject({ glassEnabled: true, glassIntensity: 100 })
+    await rm(`${path}.tmp`, { recursive: true })
+    await repository.update({ glassEnabled: false })
+    expect(repository.get().glassIntensity).toBe(100)
+    await repository.update(appearanceDefaults)
+    expect(repository.get()).toMatchObject({ glassEnabled: false, glassIntensity: 55 })
+    expect(() => parseSettings({ ...old, glassEnabled: true })).toThrow()
   })
 })

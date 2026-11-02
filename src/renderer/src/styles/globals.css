@@ -442,3 +442,41 @@ input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
 .theme-menu-item[data-highlighted] { background:var(--hover); }
 .theme-menu-item[data-disabled] { opacity:.5; cursor:not-allowed; }
 @media(max-width:960px) { .color-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } .local-font-settings { grid-template-columns:minmax(0,1fr); } .setting-row { flex-wrap:wrap; } }
+
+/* 只给容器添加玻璃材质，输入和高频日志文字保留原有可读性。 */
+:root[data-glass="true"], .glass-demo {
+  --glass-opacity:calc(94% - var(--glass-strength, .55) * 20%);
+  --glass-blur:calc(8px + var(--glass-strength, .55) * 18px);
+  --glass-glint:rgb(255 255 255 / calc(.12 + var(--glass-strength, .55) * .3));
+  --glass-sheen:rgb(255 255 255 / calc(.1 + var(--glass-strength, .55) * .14));
+  --glass-fill:linear-gradient(135deg, var(--glass-sheen), transparent 45%), color-mix(in srgb,var(--surface) var(--glass-opacity),transparent);
+  --glass-edge:inset 0 1px 0 var(--glass-glint), inset 0 0 0 1px rgb(255 255 255 / .06);
+}
+:root[data-glass="true"] .app-shell {
+  background:radial-gradient(ellipse at 0% 5%,color-mix(in srgb,var(--accent) calc(5% + var(--glass-strength) * 16%),transparent),transparent 55%),radial-gradient(ellipse at 90% 95%,color-mix(in srgb,var(--accent) calc(3% + var(--glass-strength) * 12%),transparent),transparent 60%),var(--background);
+}
+:root[data-glass="true"] :is(.page-header,.sidebar,.settings-section,.log-panel,.dialog-content,.theme-menu) {
+  background:var(--glass-fill); backdrop-filter:blur(var(--glass-blur)) saturate(125%); box-shadow:var(--glass-edge);
+}
+:root[data-glass="true"] :is(.dialog-content,.theme-menu) { box-shadow:var(--glass-edge),var(--shadow); }
+:root[data-glass="true"] .settings-section { padding:20px; border:1px solid var(--border); border-radius:16px; }
+:root[data-glass="true"] :is(.endpoint-card,.sidebar-toggle) { background:var(--glass-fill); box-shadow:var(--glass-edge); }
+:root[data-glass="true"] .endpoint-card:hover { box-shadow:var(--glass-edge),var(--shadow); }
+.glass-controls { display:grid; grid-template-columns:minmax(140px,.8fr) minmax(0,1.2fr); gap:24px; padding:8px 0 20px; align-items:center; }
+.glass-demo { min-height:164px; padding:24px; display:grid; place-items:center; overflow:hidden; border-radius:16px; background:radial-gradient(ellipse at 10% 0%,color-mix(in srgb,var(--accent) 40%,var(--surface)),transparent 70%),radial-gradient(ellipse at 100% 100%,color-mix(in srgb,var(--accent) 65%,var(--surface)),transparent 75%),var(--sidebar); }
+.glass-demo-card { width:100%; display:grid; justify-items:start; gap:4px; border:1px solid var(--border); border-radius:18px; padding:18px; background:var(--surface); color:var(--foreground); transition:background-color var(--motion-fast),box-shadow var(--motion-fast); }
+.glass-demo[data-enabled="true"] .glass-demo-card { background:var(--glass-fill); backdrop-filter:blur(var(--glass-blur)) saturate(125%); box-shadow:var(--glass-edge),0 10px 28px #00000014; }
+.glass-demo-card span { color:var(--muted-foreground); font-size:12px; }
+.glass-adjust { min-width:0; display:grid; gap:8px; }
+.glass-adjust label,.glass-range-labels { display:flex; justify-content:space-between; gap:12px; }
+.glass-adjust output { font-variant-numeric:tabular-nums; color:var(--muted-foreground); }
+.glass-range-labels { font-size:11px; color:var(--muted-foreground); }
+.glass-adjust .button { justify-self:start; margin-top:4px; }
+.glass-adjust input[type="range"] { appearance:none; width:100%; height:6px; min-height:6px; margin:10px 0; padding:0; border:0; border-radius:6px; background:var(--selected); cursor:pointer; }
+.glass-adjust input[type="range"]::-webkit-slider-thumb { appearance:none; width:18px; height:18px; border:3px solid var(--surface); border-radius:50%; background:var(--accent); box-shadow:0 0 0 1px var(--control-border); }
+.glass-adjust input[type="range"]:disabled { cursor:not-allowed; opacity:.5; }
+@media(max-width:600px) { .glass-controls { grid-template-columns:1fr; gap:14px; } }
+@supports not (backdrop-filter:blur(1px)) { :root[data-glass="true"] :is(.page-header,.sidebar,.settings-section,.log-panel,.dialog-content,.theme-menu),.glass-demo[data-enabled="true"] .glass-demo-card { background:var(--surface); } }
+
+/* 深色面板只保留细边缘高光，避免大面积反光降低文字对比度。 */
+:root.dark[data-glass="true"], .dark .glass-demo { --glass-sheen:rgb(255 255 255 / calc(.02 + var(--glass-strength, .55) * .035)); }

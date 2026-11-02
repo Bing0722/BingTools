@@ -56,7 +56,6 @@
   "TRANSFER_WRITE_FAILED": "Export failed. Check destination permissions and disk space.",
   "TRANSFER_BUSY": "A transfer is already in progress. Please wait.",
   "TRANSFER_EXPIRED": "Import preview expired. Choose the file again.",
-
   "simulator": "Server simulator",
   "settings": "Settings",
   "localWorkspace": "Local workspace",
@@ -190,7 +189,7 @@
   "appInfo": "Application",
   "appDescription": "Local HTTP Mock workspace",
   "resetAppearance": "Reset appearance",
-  "resetHelp": "Reset theme, color, font and sidebar; keep language and simulator configurations.",
+  "resetHelp": "Reset theme, color, font and sidebar; keep language and simulator configurations. Liquid glass will be turned off.",
   "resetQuestion": "Reset appearance?",
   "autoSave": "Preferences are saved automatically",
   "notFound": "Page not found",
@@ -384,5 +383,13 @@
   "tcpHeaderPrefix": "Fixed text before length digits",
   "tcpHeaderSuffix": "Fixed text after length digits",
   "tcpWrappedHelp": "Example: <HH00016>{\"action\":\"get\"}<TT>. Prefix <HH, five decimal body-length digits, suffix >, end marker HEX 3C54543E. Whole-frame length includes fixed text. Framed replies use the same wrapper.",
-  "TCP_INVALID_HEADER": "TCP fixed header marker mismatch; connection closed"
+  "TCP_INVALID_HEADER": "TCP fixed header marker mismatch; connection closed",
+  "glassTitle": "Liquid glass",
+  "glassHelp": "Translucent panels, soft blur and edge highlights that follow your theme color.",
+  "glassIntensity": "Glass intensity",
+  "glassSubtle": "Subtle",
+  "glassRich": "Rich",
+  "glassApply": "Apply effect",
+  "glassPreview": "Material preview",
+  "glassPreviewHelp": "Drag to preview, then apply across the app. Turning off keeps your chosen intensity."
 }

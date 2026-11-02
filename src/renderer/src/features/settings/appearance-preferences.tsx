@@ -1,4 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react'
+import { GlassPreferences } from './glass-preferences'
 import { Check } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '@/components/ui/button'
@@ -35,6 +36,7 @@ export function AppearancePreferences() {
     } finally { setChecking(false) }
   }
   return <>
+    <GlassPreferences />
     <div className="appearance-section"><h3>{t('themeColor')}</h3><p className="field-hint">{t('themeColorHelp')}</p>
       <div className="color-grid" role="group" aria-label={t('themeColor')}>{themeColors.map((color) => <button type="button" key={color} disabled={saving} aria-pressed={preferences.themeColor === color} className="color-choice" onClick={() => void update({ themeColor: color })} style={{ '--swatch': colorPalettes[color].light } as CSSProperties}>
         <i aria-hidden="true">{preferences.themeColor === color && <Check size={14} />}</i><span>{t(`color_${color}`)}</span>

@@ -41,6 +41,11 @@ export function Providers({ children }: { children: ReactNode }) {
     void i18n.changeLanguage(language)
     document.documentElement.lang = language
   }, [preferences.language, systemLocale, i18n])
+  useEffect(() => {
+    const root = document.documentElement
+    root.dataset.glass = String(preferences.glassEnabled)
+    root.style.setProperty('--glass-strength', String(preferences.glassIntensity / 100))
+  }, [preferences.glassEnabled, preferences.glassIntensity])
   if (!ready) return <div className="startup" role="status">{t('loading')}</div>
   return <TooltipProvider delayDuration={300}>{children}<ToastHost /></TooltipProvider>
 }
