@@ -47,6 +47,8 @@ async function goSettings(page) {
 try {
   await mkdir('test-results', { recursive: true })
   let page = await launch()
+  assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].webContents.session.isSpellCheckerEnabled()), false)
+  assert.equal(await page.locator('html').evaluate((element) => element.spellcheck), false)
   assert.equal(await page.getByLabel('客户', { exact: true }).locator('option').allTextContents().then((items) => items.join()), '—')
   // 标题栏不随侧栏移动；动画必须经历中间宽度，收起后仍可键盘展开。
   const headerBefore = await page.locator('.page-header').boundingBox()
@@ -63,6 +65,7 @@ try {
     assert.equal(await application.evaluate(({ BrowserWindow }) => BrowserWindow.getAllWindows()[0].isMenuBarVisible()), false)
   }
   assert.equal(await page.locator('.toast').count(), 0)
+  assert.equal(await page.locator('.sidebar-toggle').getAttribute('aria-expanded'), 'false')
   await screenshot(page, 'shell-collapsed')
   await page.keyboard.press(process.platform === 'darwin' ? 'Meta+b' : 'Control+b')
   await page.waitForFunction(() => Math.abs(document.querySelector('.app-shell > .sidebar').getBoundingClientRect().width - 240) < 1)
@@ -70,9 +73,11 @@ try {
   assert.equal(await page.locator('.app-shell').evaluate((element) => getComputedStyle(element).transitionDuration), '0s')
   assert.equal(await page.locator('.page-scroll').evaluate((element) => getComputedStyle(element).animationName), 'none')
   await page.emulateMedia({ reducedMotion: 'no-preference' })
+  assert.equal(await page.locator('.sidebar-toggle').getAttribute('aria-expanded'), 'true')
   await screenshot(page, 'shell-expanded')
   await page.getByRole('button', { name: '新增客户', exact: true }).first().click()
   let dialog = page.getByRole('dialog')
+  assert.equal(await dialog.getByLabel('客户名称', { exact: true }).evaluate((element) => element.spellcheck), false)
   await dialog.getByLabel('客户名称', { exact: true }).fill('集成验证客户')
   await dialog.getByLabel('端口', { exact: true }).fill(String(port))
   await dialog.getByRole('button', { name: '保存', exact: true }).click()

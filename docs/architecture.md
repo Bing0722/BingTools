@@ -188,3 +188,5 @@ settings v4 新增严格枚举 themeColor、uiFont，以及 1–100 字符 local
 Providers 从统一 colorPalettes 映射浅深主色，设置 --theme-accent、data-color 与 --font-ui；theme=system 时继续响应 matchMedia。CSS 通过语义变量派生按钮、选中和背景轻微染色，错误/成功不随个性化修改。侧栏 ThemeShortcut 复用 Radix RadioGroup，与设置页使用同一个 store，不增加主题状态副本。
 
 字体资源使用在线安装并固定的 @fontsource-variable/noto-sans-sc 5.3.1；Vite 将 woff2 分片和 OFL 许可复制到 renderer 产物，不请求远程字体，assetsInlineLimit=0 保持字体从 self 加载而无需放宽 CSP。本机字体通过 FontFace(local(...)) 检查约定候选或明确输入的名称，不枚举磁盘、不读取字体文件。CSS 家族名引用经过引号转义，缺字/缺失字体回退系统；JSON/代码正文保留等宽字体。
+
+0.8.1 在 BrowserWindow 与其 session 关闭系统拼写检查，HTML 根节点同时声明 spellcheck=false，使弹窗与普通输入继承一致行为；保留业务校验与原有安全设置。标题栏侧栏按钮沿用 AppShell 状态，窄窗以导航浮层状态反馈展开，不新增状态副本。

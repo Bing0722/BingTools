@@ -297,3 +297,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [v0.8.0 发布工作流](https://github.com/Bing0722/BingTools/actions/runs/41406878301)通过；Windows 2022 x64 与 macOS 14 ARM64 完成在线安装、类型检查、Lint、测试、说明校验和原生打包，发布作业成功。
 - [v0.8.0 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.8.0)为最新稳定版本，含 Windows EXE、macOS DMG/ZIP、blockmap 与两份更新清单，共 8 个资产。公开更新清单均标记 0.8.0，包含对应资产名和 SHA-512。
 - Windows/Linux 实机安装与真实串口设备仍未验收；macOS 安装包未签名、公证，需手动下载安装。
+
+## 0.8.1 输入拼写与侧栏入口（2026-11-02）
+
+- `pnpm build`（含 typecheck）、`pnpm lint`、`pnpm test:desktop` 通过。生产版本与发布说明为 0.8.1；保留既有块体积和依赖注释提示。
+- 真实 Electron 验证 session 拼写检查关闭、根节点及客户弹窗输入继承 spellcheck=false，JSON 校验继续工作；侧栏鼠标收缩、快捷键展开、aria-expanded、减少动态效果、窄窗导航、窗口重开与保存恢复通过，无 renderer 错误。
+- 已检查 shell-expanded 与 simulator-dark 截图：标题栏按钮圆角、方向提示、间距与浅深主题正常。没有新增依赖或镜像式样式单元测试。
+- 初次构建在沙箱中遇到 pnpm 环境检查限制，正常权限下构建通过；初次桌面断言读取的 getLastWebPreferences 不返回 spellcheck，改为检查真实 session.isSpellCheckerEnabled，并在 session 显式禁用后完整回归通过。
+- 本机 macOS 验证，Windows/Linux 实机和本轮打包安装未验证；未推送或发布。

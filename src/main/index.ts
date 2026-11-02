@@ -81,8 +81,11 @@ function createWindow(): void {
     webPreferences: {
       preload: join(__dirname, '../preload/index.js'),
       contextIsolation: true, sandbox: true, nodeIntegration: false,
+      // 工具字段包含路径、协议和 JSON，关闭自然语言拼写标记。
+      spellcheck: false,
     },
   })
+  window.webContents.session.setSpellCheckerEnabled(false)
   window.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
   window.webContents.on('will-navigate', (event) => event.preventDefault())
   window.on('resize', queueBounds)
