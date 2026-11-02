@@ -256,3 +256,9 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - `pnpm test:desktop` passed on local macOS: default-off delay, disabled time field, keyboard Space toggle, saving/reopening 250 ms, and a real HTTP request taking at least 230 ms. Existing themes, narrow layout, window lifecycle and restart checks passed with no renderer errors. Inspected test-results/endpoint-delay.png: controls and fixed footer fit correctly.
 - Initial desktop runs exposed a release-note heading mismatch and an ambiguous Close locator; both were corrected before the final passing run.
 - No installation package, Windows/Linux device or installation validation this round. No remote push or release.
+
+### 0.6.2 GitHub release
+
+- [Release workflow](https://github.com/Bing0722/BingTools/actions/runs/41375069875) passed on Windows 2022 x64 and macOS 14 ARM64, including typecheck, lint, 64 tests, release-note validation, native packaging and publication.
+- [v0.6.2 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.6.2) is the latest stable version with eight assets: EXE, DMG, ZIP, blockmaps and both update manifests. Public `latest.yml` and `latest-mac.yml` report version 0.6.2, matching assets and SHA-512 checksums.
+- Windows installation and upgrades remain unverified on a physical machine; unsigned, unnotarized macOS builds require manual download.
