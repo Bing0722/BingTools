@@ -272,3 +272,13 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - [Release workflow](https://github.com/Bing0722/BingTools/actions/runs/41375069875) passed on Windows 2022 x64 and macOS 14 ARM64, including typecheck, lint, 64 tests, release-note validation, native packaging and publication.
 - [v0.6.2 Release](https://github.com/Bing0722/BingTools/releases/tag/v0.6.2) is the latest stable version with eight assets: EXE, DMG, ZIP, blockmaps and both update manifests. Public `latest.yml` and `latest-mac.yml` report version 0.6.2, matching assets and SHA-512 checksums.
 - Windows installation and upgrades remain unverified on a physical machine; unsigned, unnotarized macOS builds require manual download.
+
+## 0.7.1 统一表单控件（2026-11-02）
+
+- `pnpm build`（含 typecheck）、`pnpm lint` 通过；版本 0.7.1 和发布说明已注入。现有依赖注释及大块体积提示保留，没有新增 CSS 构建警告。
+- `pnpm test`：9 个文件、69 项通过。没有为纯样式新增镜像式单元测试。
+- `node scripts/controls-smoke.mjs` 通过：真实 Electron 确认 base-select 支持；实际打开菜单并鼠标选择，验证方向键、字符搜索、Enter、Esc 仅关闭菜单；数字步进点击、上下界禁用、焦点、键盘数值修改与保存；复选框 Space 切换；浅／深色、中文 800×560 与减少动态效果，无 renderer 错误。
+- 已检查 `test-results/controls-select-light.png`、`controls-select-dark.png`、`controls-narrow-dark-zh.png`。菜单中性色选中与勾选可见，数字框内嵌步进按钮清晰，窄窗菜单未被弹窗裁切。
+- `pnpm test:desktop`、`pnpm test:motion`、`node scripts/transfer-smoke.mjs`、`node scripts/tcp-smoke.mjs --wrapped` 回归通过，覆盖现有 HTTP、运控控件／串口枚举、导入导出及真实本机 TCP 收发和设置。没有连接串口硬件。
+- 验证中修复 base-select 与 Radix 的 Esc 传播冲突；TCP 脚本改为精确标签匹配，避免匹配新增步进按钮，同时将过期的 schema v4 断言同步到既有 v5。自动审批服务曾因用量限制中断测试启动，恢复后已完成相关回归。
+- 本轮在本机 macOS 验证，未执行 Windows/Linux 实机显示与安装验证，也未生成本轮安装包。未推送或发布。

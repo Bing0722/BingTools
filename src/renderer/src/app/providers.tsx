@@ -17,6 +17,15 @@ export function Providers({ children }: { children: ReactNode }) {
   useEffect(() => connectMotion(), [])
   useEffect(() => connectUpdates(), [])
   useEffect(() => {
+    // base-select 的 Esc 默认行为由浏览器执行；先于 Radix 的 document 监听截断传播，
+    // 避免同一次按键关闭外层弹窗。不 preventDefault，保证菜单正常关闭并还原焦点。
+    const handlePickerEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && document.querySelector('select:open')) event.stopPropagation()
+    }
+    window.addEventListener('keydown', handlePickerEscape, true)
+    return () => window.removeEventListener('keydown', handlePickerEscape, true)
+  }, [])
+  useEffect(() => {
     document.documentElement.classList.toggle('dark', preferences.theme === 'dark' || (preferences.theme === 'system' && systemDark))
     document.documentElement.style.colorScheme = preferences.theme === 'system' ? (systemDark ? 'dark' : 'light') : preferences.theme
   }, [preferences.theme, systemDark])

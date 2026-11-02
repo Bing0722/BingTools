@@ -1,4 +1,6 @@
 {
+  "numberIncrease": "增加{{name}}",
+  "numberDecrease": "减少{{name}}",
   "transferTitle": "导入 / 导出",
   "transferHelp": "使用 BingTools JSON 文件迁移配置（最大 32 MiB）。导出已保存内容，不含日志或运行状态。",
   "transferExport": "导出配置",

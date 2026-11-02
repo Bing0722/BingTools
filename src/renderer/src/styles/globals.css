@@ -31,8 +31,8 @@
 * { box-sizing: border-box; }
 html, body, #root { width: 100%; height: 100%; margin: 0; overflow: hidden; }
 body { background: var(--background); color: var(--foreground); font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; font-size: 14px; line-height: 1.6; -webkit-font-smoothing: antialiased; }
-button, input, select { font: inherit; }
-button, a, input, select { -webkit-app-region: no-drag; }
+button, input, select, textarea { font: inherit; }
+button, a, input, select, textarea { -webkit-app-region: no-drag; }
 button, a, select { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; }
 button:disabled { opacity: .5; cursor: not-allowed; }
@@ -87,9 +87,13 @@ svg { flex-shrink: 0; }
 .button-sm { height:28px; padding:0 9px; font-size:11px; }
 .badge { display:inline-flex; font-size:10px; font-weight:400; color:var(--muted-foreground); background:var(--sidebar); border:1px solid var(--border); padding:1px 6px; border-radius:4px; white-space:nowrap; }
 h2 { font-size:14px; font-weight:600; }
-input,select,textarea { border:1px solid var(--control-border); border-radius:6px; background:var(--surface); color:var(--foreground); font-size:12px; padding:6px 9px; min-width:0; }
-input,select { height:32px; }
-input:disabled,select:disabled,textarea:disabled { opacity:.6; }
+input,select,textarea { border:1px solid var(--control-border); border-radius:var(--radius); background:color-mix(in srgb,var(--surface) 75%,var(--sidebar)); color:var(--foreground); font-size:12px; padding:6px 10px; min-width:0; transition:border-color var(--motion-fast),background-color var(--motion-fast),box-shadow var(--motion-fast); }
+input,select { height:34px; }
+input::placeholder,textarea::placeholder { color:var(--muted-foreground); opacity:.8; }
+input:not(:disabled):not([readonly]):hover,select:not(:disabled):hover,textarea:not(:disabled):not([readonly]):hover { border-color:var(--muted-foreground); background:var(--surface); }
+input:focus-visible,select:focus-visible,textarea:focus-visible { outline:none; border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 18%,transparent); background:var(--surface); }
+input:disabled,select:disabled,textarea:disabled { opacity:1; cursor:not-allowed; color:var(--muted-foreground); border-color:var(--border); background:var(--sidebar); }
+input[readonly],textarea[readonly] { color:var(--muted-foreground); background:var(--sidebar); border-color:var(--border); }
 textarea { resize:vertical; }
 .field { display:flex; flex-direction:column; gap:6px; min-width:0; }
 .field>span,.field-hint { font-size:11px; color:var(--muted-foreground); }
@@ -351,3 +355,45 @@ textarea { resize:vertical; }
 .transfer-preview { min-width:0; padding:12px; border:1px solid var(--border); border-radius:8px; animation:content-enter var(--motion-panel) var(--motion-ease); }
 .transfer-preview ul { max-height:120px; overflow:auto; padding-left:20px; overflow-wrap:anywhere; }
 @media (prefers-reduced-motion:reduce) { .transfer-preview { animation:none; } }
+
+/* Chromium 自定义 select 继续使用原生语义，浮层进入 top layer，不被弹窗滚动区裁切。 */
+@supports (appearance:base-select) {
+  select,select::picker(select) { appearance:base-select; }
+  select { display:flex; align-items:center; justify-content:space-between; gap:12px; text-align:start; cursor:pointer; white-space:nowrap; }
+  select::picker-icon { content:""; width:7px; height:7px; border-right:1.5px solid currentColor; border-bottom:1.5px solid currentColor; rotate:45deg; margin:-4px 2px 0 8px; color:var(--muted-foreground); flex-shrink:0; transition:rotate var(--motion-fast); }
+  select:open::picker-icon { rotate:225deg; margin-top:3px; }
+  select:open { border-color:var(--accent); box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 12%,transparent); }
+  select::picker(select) { margin:6px 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--surface); color:var(--foreground); box-shadow:var(--shadow); min-width:anchor-size(width); max-width:calc(100vw - 24px); max-height:min(320px,60vh); overflow:auto; font:12px/1.5 system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; }
+  select option { min-height:32px; display:flex; align-items:center; gap:12px; padding:7px 10px; margin:1px 0; border:0; border-radius:6px; background:transparent; color:var(--foreground); white-space:normal; overflow-wrap:anywhere; cursor:pointer; transition:background-color var(--motion-fast); }
+  select option:checked { background:var(--selected); color:var(--foreground); font-weight:550; }
+  select option:hover,select option:focus { background:var(--hover); color:var(--foreground); outline:none; }
+  select option:focus-visible { outline:1px solid var(--control-border); outline-offset:-1px; }
+  select option:disabled { color:var(--muted-foreground); opacity:.55; cursor:not-allowed; background:transparent; }
+  select option::checkmark { order:1; margin-left:auto; color:var(--foreground); font-weight:600; }
+  select:open::picker(select) { animation:fade-in var(--motion-fast) var(--motion-ease); }
+}
+.setting-row > select { min-width:160px; max-width:240px; }
+/* 自定义复选框：选中、键盘焦点和禁用状态由现有语义变量统一呈现。 */
+input[type="checkbox"] { appearance:none; display:inline-grid; place-content:center; vertical-align:middle; width:16px; height:16px; padding:0; border-radius:4px; margin:0 5px 2px 0; cursor:pointer; flex-shrink:0; }
+input[type="checkbox"]::before { content:""; width:7px; height:4px; border:solid var(--primary-foreground); border-width:0 0 2px 2px; transform:translateY(-1px) rotate(-45deg) scale(0); transition:transform var(--motion-fast) var(--motion-ease); }
+input[type="checkbox"]:checked { background:var(--primary); border-color:var(--primary); }
+input[type="checkbox"]:checked::before { transform:translateY(-1px) rotate(-45deg) scale(1); }
+input[type="checkbox"]:checked:hover { background:var(--primary); border-color:var(--primary); }
+input[type="checkbox"]:disabled { opacity:.45; cursor:not-allowed; }
+.switch { width:32px; height:20px; padding:3px; background:var(--control-border); }
+.switch[aria-checked="true"] { background:var(--primary); }
+.switch>span { background:var(--surface); box-shadow:0 1px 3px color-mix(in srgb,var(--foreground) 16%,transparent); transition:transform var(--motion-fast) var(--motion-ease),background-color var(--motion-fast); }
+.switch[aria-checked="true"]>span { background:var(--primary-foreground); }
+.number-control { display:flex; position:relative; min-width:0; width:100%; align-items:stretch; border-radius:var(--radius); color:var(--foreground); }
+.number-control > input { width:100%; padding-right:30px; font-variant-numeric:tabular-nums; appearance:textfield; }
+.number-control input::-webkit-inner-spin-button,.number-control input::-webkit-outer-spin-button { -webkit-appearance:none; margin:0; }
+.number-steppers { position:absolute; inset:4px 4px 4px auto; display:flex; flex-direction:column; width:22px; border-left:1px solid var(--border); padding-left:3px; gap:1px; }
+.number-steppers button { display:flex; flex:1; align-items:center; justify-content:center; min-height:0; padding:0; border:0; border-radius:3px; color:var(--muted-foreground); background:transparent; transition:background-color var(--motion-fast),color var(--motion-fast); }
+.number-steppers button:hover:not(:disabled) { background:var(--hover); color:var(--foreground); }
+.number-steppers button:active:not(:disabled) { background:var(--selected); }
+.number-steppers button:disabled { opacity:.3; }
+.number-control[data-disabled] .number-steppers { opacity:.5; }
+@media (prefers-reduced-motion:reduce) {
+  input,select,textarea,select::picker-icon,select option,input[type="checkbox"]::before,.number-steppers button { transition:none; }
+  select:open::picker(select) { animation:none; }
+}

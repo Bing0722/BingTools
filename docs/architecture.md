@@ -174,3 +174,9 @@ HTTP endpoint.responseDelay 为可选 { enabled, ms }，ms 为 0–60000 整数�
 shared/schemas/transfer 定义独立 BingTools-transfer v1 文件与严格 export/apply 参数；不改变 simulator v5 / motion v2 持久化结构。transfer:* IPC 使用相同窗口来源校验；页面仅传模块、实体 ID、范围与预览 token，不接收或指定文件路径。原生打开／保存对话框选择路径，独立 transfer-worker 线程执行有界读取、JSON 解析校验和导出序列化；32 MiB 文件上限。导出先写同目录临时文件再 rename，失败清理临时文件。
 
 主进程仅保留一份导入预览，绑定窗口与随机 token，重新选择、取消、成功导入或窗口关闭即释放；通过原有控制器串行队列再次检查停服状态并原子保存。客户重生成全部 ID、按 trim/lowercase 生成唯一名称；接口保持目标客户参数，先检查协议与匹配冲突。成功后使用现有 snapshot/state 事件更新页面。文件不含运行状态或日志，不执行文件内脚本，也不直接连接导入的串口路径；连接前仍要求系统枚举确认。
+
+## 控件外观与键盘（0.7.1）
+
+沿用现有原生表单语义与 Radix/shadcn 基础组件，不新增组件库。select 使用 `appearance: base-select` 与 `::picker(select)` 统一跨平台外观，缺少支持时回退原生。当前 Electron 已通过运行时 CSS.supports 验证；参考 [Chromium 官方说明](https://developer.chrome.com/blog/a-customizable-select)。Providers 在 window capture 阶段拦截打开的 select 的 Esc 传播，但不阻止浏览器默认关闭，避免 Radix 同时关闭外层弹窗；卸载移除监听。
+
+components/ui/NumberInput 包装原生 number 输入，stepUp/stepDown 负责数值、步长和边界，再通过原生 value setter 与 input 事件更新现有 React 受控表单；不另存数值副本，不更改 IPC 或持久化契约。全部数字字段复用该组件，串口与端口输入补齐既有 schema 对应的界面范围。

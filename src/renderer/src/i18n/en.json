@@ -1,4 +1,6 @@
 {
+  "numberIncrease": "Increase {{name}}",
+  "numberDecrease": "Decrease {{name}}",
   "transferTitle": "Import / export",
   "transferHelp": "Migrate saved configuration using BingTools JSON files (up to 32 MiB). Logs and runtime state are excluded.",
   "transferExport": "Export configuration",
