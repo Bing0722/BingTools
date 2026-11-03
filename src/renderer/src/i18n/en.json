@@ -412,5 +412,19 @@
   "updateManualAction": "Get the update",
   "updateInstallingHelp": "Preparing to quit and install the update.",
   "updateDemoFlowHelp": "This is a simulation. No files will be downloaded or installed.",
-  "updateNoNotes": "Release notes are not available. You can read more on the download page."
+  "updateNoNotes": "Release notes are not available. You can read more on the download page.",
+  "aiImportTitle": "AI import assistant",
+  "aiImportHelp": "Copy the interface format instructions and ask your AI to turn business rules into importable JSON.",
+  "aiImportStep1": "Copy the instructions below and paste them into your AI.",
+  "aiImportStep2": "Append your business rules, ask for JSON, and save the result as a .json file.",
+  "aiImportStep3": "Select a customer with the matching protocol, stop its service, then choose the file, preview and confirm.",
+  "aiImportProtocol": "Interface type",
+  "aiImportCopy": "Copy rules for AI",
+  "aiImportCopying": "Copying…",
+  "aiImportCopied": "Rules copied",
+  "aiImportPrivacy": "Copies only format rules and generic examples. No customer or existing interface content is included, and no AI service is contacted.",
+  "aiImportPreview": "View full instructions",
+  "aiImportPrompt": "AI instructions",
+  "AI_COPY_FAILED": "Could not copy. Expand the instructions and select the text to copy manually.",
+  "aiImportCopySuccess": "Copied. Paste into your AI and append your business rules."
 }

@@ -352,3 +352,11 @@ BINGTOOLS_EXECUTABLE="$PWD/release/mac-arm64/BingTools.app/Contents/MacOS/BingTo
 - 使用 TypeScript 解析及去注释打印，对比确认 70 个 TS／TSX 文件去注释后的语法一致；CSS 去除注释后的规则一致。未改变运行逻辑、样式规则、依赖或持久化契约。
 - `pnpm lint`、`pnpm build`（含 `pnpm typecheck`）、`pnpm test` 通过；10 个测试文件、77 项测试。首次测试因沙箱禁止回环端口监听出现 `EPERM`，允许本机监听后完整重跑通过。构建仍有已有的 Zod 注释处理及块体积提示。
 - 本轮仅注释与文档维护，应用行为不变，版本保留 0.8.5。未新增镜像式测试；未执行桌面、硬件或安装包验收，未推送或发布。
+
+## 0.8.6 AI 接口导入助手（2026-11-03）
+
+- `pnpm build`（含 typecheck）、`pnpm lint`、`pnpm test` 通过；11 文件、84 项测试。新增中英文三协议提示词中的 JSON 提取与正式 schema 校验，以及受控复制参数边界测试。版本 0.8.6 与说明完成生产注入；没有新依赖。
+- `node scripts/ai-import-smoke.mjs` 通过：真实 Electron 默认协议、系统剪贴板内容与预览一致、不含客户名、HTTP/TCP/串口示例通过 worker 文件读取和预览确认实际导入、非法复制参数拒绝、简中深色 800×560、剪贴板写入失败反馈。原生文件选择结果使用测试替身，读写和导入业务使用真实实现；没有网络请求或硬件连接。
+- `node scripts/transfer-smoke.mjs` 回归通过：客户／接口导入导出、文件 IO、重复保护、取消、版本／模块／路径注入拒绝与重启持久化。
+- 检查 ai-import-narrow 截图，助手、复制反馈和滚动弹窗正常；补充三步编号并明确 TCP 自动包装开关的区别。初次专项脚本按钮名称与现有“Choose import file”不符，修正后完整通过。
+- Windows/Linux 实机和本轮安装包未验证；外部 AI 输出质量不属于本机验证，导入仍严格校验。未推送或发布。

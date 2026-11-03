@@ -1,7 +1,8 @@
 /**
  * 导入导出入口：主进程选择文件，工作线程处理正文，页面只接收摘要与预览凭证。
  */
-import { dialog, ipcMain, type BrowserWindow } from 'electron'
+import { aiImportOptionsSchema, buildAiImportPrompt } from '../../shared/ai-import'
+import { clipboard, dialog, ipcMain, type BrowserWindow } from 'electron'
 import { Worker } from 'node:worker_threads'
 import { join } from 'node:path'
 import { randomUUID } from 'node:crypto'
@@ -32,6 +33,13 @@ export function registerTransfer(simulator: SimulatorController, motion: MotionC
     const phase = module === 'simulator' ? simulator.snapshot().runtime.phase : motion.state().phase
     if (['starting', 'running', 'stopping'].includes(phase)) throw new Error('STOP_FIRST')
   }
+  ipcMain.handle('transfer:copyAiPrompt', (event, input: unknown) => {
+    if (!allowed(event)) return fail('FORBIDDEN')
+    const parsed = aiImportOptionsSchema.safeParse(input)
+    if (!parsed.success) return fail('INVALID_INPUT')
+    try { clipboard.writeText(buildAiImportPrompt(parsed.data)); return { ok: true, data: null } }
+    catch { return fail('AI_COPY_FAILED') }
+  })
   ipcMain.handle('transfer:choose', async (event, input: unknown) => {
     if (!allowed(event)) return fail('FORBIDDEN')
     const parsed = transferModuleSchema.safeParse(input)

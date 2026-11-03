@@ -1,6 +1,7 @@
 /**
  * 配置迁移弹窗：选择文件、预览摘要、确认导入分步执行；文件路径和正文留在主进程。
  */
+import { AiImportHelper } from './ai-import-helper'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ArrowDownUp, Download, Upload } from 'lucide-react'
@@ -10,7 +11,7 @@ import { useNotifications } from '@/stores/notification-store'
 import type { TransferModule, TransferPreview } from '../../../../shared/schemas/transfer'
 
 export function TransferDialog({ module, customer, hasCustomers, disabled, locked }: {
-  module: TransferModule; customer?: { id: string; name: string; interfaces: { id: string; name: string }[] }
+  module: TransferModule; customer?: { id: string; name: string; protocol?: 'http' | 'tcp'; interfaces: { id: string; name: string }[] }
   hasCustomers: boolean; disabled: boolean; locked: boolean
 }) {
   const { t } = useTranslation()
@@ -54,6 +55,7 @@ export function TransferDialog({ module, customer, hasCustomers, disabled, locke
   return <>
     <Button variant="outline" size="sm" disabled={disabled} onClick={() => changeOpen(true)}><ArrowDownUp size={14} />{t('transferTitle')}</Button>
     <Dialog className="transfer-dialog" open={open} onOpenChange={changeOpen} title={t('transferTitle')} description={t('transferHelp')}>
+      <AiImportHelper protocol={module === 'motion' ? 'motion' : customer?.protocol ?? 'http'} />
       <section className="transfer-section"><h3>{t('transferExport')}</h3>
         <label className="field"><span>{t('transferScope')}</span><select aria-label={t('transferScope')} disabled={busy} value={scope} onChange={(e) => { setScope(e.target.value); setStatus('') }}>
           <option value="all">{t('transferAllCustomers')}</option><option value="current" disabled={!customer}>{t('transferCurrentCustomer')}</option><option value="interfaces" disabled={!customer?.interfaces.length}>{t('transferInterfaces')}</option>

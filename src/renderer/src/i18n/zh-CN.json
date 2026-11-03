@@ -412,5 +412,19 @@
   "updateManualAction": "前往下载",
   "updateInstallingHelp": "正在准备退出并安装更新。",
   "updateDemoFlowHelp": "此流程仅为模拟，不会下载文件或执行安装。",
-  "updateNoNotes": "暂未提供该版本说明，可前往下载页查看。"
+  "updateNoNotes": "暂未提供该版本说明，可前往下载页查看。",
+  "aiImportTitle": "AI 导入助手",
+  "aiImportHelp": "复制接口格式说明，让你使用的 AI 把业务规则转换为可导入的 JSON。",
+  "aiImportStep1": "复制下方规则提示词，粘贴到 AI。",
+  "aiImportStep2": "在提示词末尾补充业务规则，让 AI 输出 JSON 并保存为 .json 文件。",
+  "aiImportStep3": "选择对应协议客户，停止服务，再选择文件、预览并确认导入。",
+  "aiImportProtocol": "生成接口类型",
+  "aiImportCopy": "复制规则给 AI",
+  "aiImportCopying": "正在复制…",
+  "aiImportCopied": "已复制规则",
+  "aiImportPrivacy": "仅复制格式规则和通用示例，不包含客户或现有接口内容，也不会连接 AI 服务。",
+  "aiImportPreview": "查看完整规则提示词",
+  "aiImportPrompt": "AI 规则提示词",
+  "AI_COPY_FAILED": "复制失败，请展开提示词后手动全选复制。",
+  "aiImportCopySuccess": "已复制，可以粘贴到 AI 并补充业务规则。"
 }

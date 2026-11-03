@@ -1,6 +1,7 @@
 /**
  * 页面与预加载层共用的 API 契约；这里只定义类型，实际安全校验仍在主进程执行。
  */
+import type { AiImportOptions } from '../ai-import'
 import type { TransferExport, TransferModule, TransferPreview } from '../schemas/transfer'
 import type { MotionCommand, MotionEvent, MotionSnapshot, MotionState, SerialPortInfo } from '../schemas/motion'
 import type { UpdateSnapshot } from './updater'
@@ -14,6 +15,7 @@ export interface AppApi {
   platform: 'darwin' | 'win32' | 'linux'
   // choose 仅产生预览，apply 才保存；返回 null 或 false 可表示用户取消原生文件对话框。
   transfer: {
+    copyAiPrompt(options: AiImportOptions): Promise<Result<null>>
     choose(module: TransferModule): Promise<Result<TransferPreview | null>>
     apply(input: { token: string; customerId?: string }): Promise<Result<null>>
     discard(): Promise<Result<null>>

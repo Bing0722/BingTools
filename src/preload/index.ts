@@ -14,6 +14,7 @@ const api: AppApi = {
   platform: process.platform as AppApi['platform'],
   // 页面只传模块和实体 ID；打开/保存对话框及文件路径由主进程管理。
   transfer: {
+    copyAiPrompt: (options) => ipcRenderer.invoke('transfer:copyAiPrompt', options),
     choose: (module) => ipcRenderer.invoke('transfer:choose', module),
     apply: (input) => ipcRenderer.invoke('transfer:apply', input),
     discard: () => ipcRenderer.invoke('transfer:discard'),
